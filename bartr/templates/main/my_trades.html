@@ -1,0 +1,1257 @@
+{% extends "base.html" %}
+
+{% block title %}My Trades{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4>My Trades</h4>
+        </div>
+    </div>
+
+    <!-- Trade Status Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs mb-4" id="tradesTabs" role="tablist">
+                {% set received_pending_trades = pending_trades|selectattr('receiver_id', 'equalto', current_user.id)|list %}
+                <li class="nav-item" role="presentation">
+                    <a href="{{ url_for('main.my_trades', status='pending_approval') }}" 
+                       class="nav-link {% if current_status == 'pending_approval' or not current_status %}active{% endif %}">
+                        Pending
+                        {% if received_pending_trades|length > 0 %}
+                            <span class="badge badge-round" style="background-color: #F33A6A;">{{ received_pending_trades|length }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a href="{{ url_for('main.my_trades', status='accepted') }}" 
+                       class="nav-link {% if current_status == 'accepted' %}active{% endif %}">
+                        Accepted
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a href="{{ url_for('main.my_trades', status='rejected') }}" 
+                       class="nav-link {% if current_status == 'rejected' %}active{% endif %}">
+                        Rejected
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a href="{{ url_for('main.my_trades', status='completed') }}" 
+                       class="nav-link {% if current_status == 'completed' %}active{% endif %}">
+                        Completed
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a href="{{ url_for('main.my_trades', status='cancelled') }}" 
+                       class="nav-link {% if current_status == 'cancelled' %}active{% endif %}">
+                        Cancelled
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="tradesTabsContent">
+                <div class="tab-pane fade show active" id="trades-content" role="tabpanel">
+                    {% if current_trades %}
+                        <div class="row">
+                            <!-- Received Trades -->
+                            <div class="col-md-6 pe-4 border-end">
+                                <h6 class="mb-3">
+                                    {% if current_status == 'pending_approval' or not current_status %}
+                                        Received Trade Proposals
+                                    {% elif current_status == 'accepted' %}
+                                        Received Accepted Trades
+                                    {% elif current_status == 'rejected' %}
+                                        Received Rejected Trades
+                                    {% elif current_status == 'cancelled' %}
+                                        Received Cancelled Trades
+                                    {% else %}
+                                        Received Completed Trades
+                                    {% endif %}
+                                </h6>
+                                {% set received_trades = current_trades|selectattr('receiver_id', 'equalto', current_user.id)|list %}
+                                {% if received_trades %}
+                                    {% for trade in received_trades %}
+                                        <div class="card shadow-sm mb-3">
+                                            <div class="card-body">
+
+                                                <!-- User Info and Date/Time -->
+                                                <div class="trade-header-new mb-3">
+                                                    <div class="trade-left d-flex align-items-center">
+                                                        <a href="{{ url_for('auth.profile', user_id=trade.sender.id) }}" class="text-decoration-none">
+                                                            {% if trade.sender.profile_photo %}
+                                                                <img src="{{ url_for('static', filename='uploads/profile_photos/' + trade.sender.profile_photo) }}"
+                                                                     alt="{{ trade.sender.username }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                            {% else %}
+                                                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                                    <i class="fas fa-user text-white"></i>
+                                                                </div>
+                                                            {% endif %}
+                                                        </a>
+                                                        <div>
+                                                            <h6 class="username-new mb-0">@{{ trade.sender.username }}</h6>
+                                                            <small class="location-new text-muted">{{ trade.sender.city }}, {{ trade.sender.region }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="trade-right">
+                                                        <div class="date-new">{{ trade.created_at.strftime('%d-%m-%Y') }}</div>
+                                                        <div class="time-new">{{ trade.created_at.strftime('%I:%M %p') }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Fairness Indicator Left Aligned -->
+                                                <div class="mb-3">
+                                                    <div class="trade-value-section {% if trade.fairness_score %}{% if trade.fairness_score >= 85 %}very-fair{% elif trade.fairness_score >= 70 %}fair{% elif trade.fairness_score >= 50 %}somewhat-fair{% else %}unfair{% endif %}{% else %}unfair{% endif %}">
+                                                        <i class="fas fa-balance-scale"></i>
+                                                        <div class="trade-value-percentage">{% if trade.fairness_score %}{{ trade.fairness_score }}%{% else %}N/A{% endif %}</div>
+                                                        <div class="trade-value-text">{% if trade.fairness_score %}{% if trade.fairness_score >= 85 %}Very Fair Trade{% elif trade.fairness_score >= 70 %}Fair Trade{% elif trade.fairness_score >= 50 %}Somewhat Fair Trade{% else %}Unfair Trade{% endif %}{% else %}Pending Trade{% endif %}</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Trade Items -->
+                                                <div class="row mb-3">
+                                                    <!-- They Want -->
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-2">They Want:</h6>
+                                                        <a href="{{ url_for('main.item', item_id=trade.requested_item.id) }}" 
+                                                           class="text-decoration-none">
+                                                            <div class="d-flex align-items-center">
+                                                                {% if trade.requested_item.photos %}
+                                                                    <img src="{{ url_for('static', filename='uploads/items/' + trade.requested_item.id|string + '/' + trade.requested_item.photos[0].photo_path) }}"
+                                                                         style="width: 60px; height: 60px; object-fit: cover;"
+                                                                         alt="{{ trade.requested_item.name }}"
+                                                                         class="rounded">
+                                                                {% endif %}
+                                                                <div class="ms-3">
+                                                                    <h6 class="item-name text-dark mb-0">{{ trade.requested_item.name }}</h6>
+                                                                    {% if trade.requested_item.estimated_value is not none %}
+                                                                        RM{{ "%.2f"|format(trade.requested_item.estimated_value) }}
+                                                                    {% else %}
+                                                                        <span class="text-warning">Price not set</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+
+                                                    <!-- They Offer -->
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-2">They Offer:</h6>
+                                                        {% if trade.offered_items %}
+                                                            {% for trade_item in trade.offered_items %}
+                                                                <a href="{{ url_for('main.item', item_id=trade_item.item.id) }}" 
+                                                                   class="text-decoration-none">
+                                                                    <div class="d-flex align-items-center mb-2">
+                                                                        {% if trade_item.item.photos %}
+                                                                            <img src="{{ url_for('static', filename='uploads/items/' + trade_item.item.id|string + '/' + trade_item.item.photos[0].photo_path) }}"
+                                                                                 style="width: 60px; height: 60px; object-fit: cover;"
+                                                                                 alt="{{ trade_item.item.name }}"
+                                                                                 class="rounded">
+                                                                        {% endif %}
+                                                                        <div class="ms-3">
+                                                                            <h6 class="item-name text-dark mb-0">{{ trade_item.item.name }}</h6>
+                                                                            {% if trade.requested_item.estimated_value is not none %}
+                                                                                <div class="item-price text-muted">RM{{ "%.2f"|format(trade.requested_item.estimated_value) }}</div>
+                                                                            {% else %}
+                                                                                <div class="item-price text-muted text-warning">Price not set</div>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </a>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <p class="text-muted mb-0">No items offered</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                {% if trade.message %}
+                                                    <div class="mb-3">
+                                                        <p class="text-muted small mb-0">Message: {{ trade.message }}</p>
+                                                    </div>
+                                                {% endif %}
+
+                                                <!-- Action Buttons for Received Trades -->
+                                                <div class="action-buttons">
+                                                    {% if current_status == 'pending_approval' or not current_status %}
+                                                        <button onclick="performTradeAction({{ trade.id }}, 'accept')" 
+                                                               class="btn btn-success btn-sm trade-action-btn">Accept</button>
+                                                        <button onclick="performTradeAction({{ trade.id }}, 'reject')" 
+                                                               class="btn btn-danger btn-sm trade-action-btn">Reject</button>
+                                                    {% elif current_status == 'accepted' %}
+                                                        {% if not trade.receiver_completed %}
+                                                            <button onclick="performTradeAction({{ trade.id }}, 'complete')" 
+                                                                   class="btn btn-success btn-sm trade-action-btn">Completed</button>
+                                                        {% endif %}
+                                                        <button onclick="performTradeAction({{ trade.id }}, 'cancel')" 
+                                                               class="btn btn-danger btn-sm trade-action-btn">Cancel</button>
+                                                    {% elif current_status == 'completed' %}
+                                                        {% set has_reviewed = trade.id|has_reviewed(current_user.id) %}
+                                                        {% if not has_reviewed %}
+                                                            <button type="button" class="btn btn-primary btn-sm review-button" 
+                                                                    data-bs-toggle="modal" data-bs-target="#reviewModal{{ trade.id }}"
+                                                                    {% if (trade.sender_id == current_user.id and not trade.receiver_completed) or 
+                                                                           (trade.receiver_id == current_user.id and not trade.sender_completed) %}disabled{% endif %}>
+                                                                Leave Review
+                                                            </button>
+                                                            {% if (trade.sender_id == current_user.id and not trade.receiver_completed) or 
+                                                                  (trade.receiver_id == current_user.id and not trade.sender_completed) %}
+                                                                <div class="text-warning small mt-2">
+                                                                    <i class="fas fa-exclamation-circle"></i>
+                                                                    Waiting for the other user to mark as completed
+                                                                        {% endif %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    <a href="{{ url_for('main.messages', user_id=trade.sender.id) }}" 
+                                                       class="btn btn-outline-secondary btn-sm">Message</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                        <h6>No received trades</h6>
+                                        <p class="text-muted small">Trade proposals from other users will appear here</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Sent Trades -->
+                            <div class="col-md-6 ps-4">
+                                <h6 class="mb-3">
+                                    {% if current_status == 'pending_approval' or not current_status %}
+                                        Sent Trade Proposals
+                                    {% elif current_status == 'accepted' %}
+                                        Sent Accepted Trades
+                                    {% elif current_status == 'rejected' %}
+                                        Sent Rejected Trades
+                                    {% elif current_status == 'cancelled' %}
+                                        Sent Cancelled Trades
+                                    {% else %}
+                                        Sent Completed Trades
+                                    {% endif %}
+                                </h6>
+                                {% set sent_trades = current_trades|selectattr('sender_id', 'equalto', current_user.id)|list %}
+                                {% if sent_trades %}
+                                    {% for trade in sent_trades %}
+                                        <div class="card shadow-sm mb-3">
+                                            <div class="card-body">
+
+                                                <!-- User Info and Date/Time -->
+                                                <div class="trade-header-new mb-3">
+                                                    <div class="trade-left d-flex align-items-center">
+                                                        <a href="{{ url_for('auth.profile', user_id=trade.receiver.id) }}" class="text-decoration-none">
+                                                            {% if trade.receiver.profile_photo %}
+                                                                <img src="{{ url_for('static', filename='uploads/profile_photos/' + trade.receiver.profile_photo) }}"
+                                                                     alt="{{ trade.receiver.username }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                            {% else %}
+                                                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                                    <i class="fas fa-user text-white"></i>
+                                                                </div>
+                                                            {% endif %}
+                                                        </a>
+                                                        <div>
+                                                            <h6 class="username-new mb-0">@{{ trade.receiver.username }}</h6>
+                                                            <small class="location-new text-muted">{{ trade.receiver.city }}, {{ trade.receiver.region }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="trade-right">
+                                                        <div class="date-new">{{ trade.created_at.strftime('%d-%m-%Y') }}</div>
+                                                        <div class="time-new">{{ trade.created_at.strftime('%I:%M %p') }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Fairness Indicator Left Aligned -->
+                                                <div class="mb-3">
+                                                    <div class="trade-value-section {% if trade.fairness_score %}{% if trade.fairness_score >= 85 %}very-fair{% elif trade.fairness_score >= 70 %}fair{% elif trade.fairness_score >= 50 %}somewhat-fair{% else %}unfair{% endif %}{% else %}unfair{% endif %}">
+                                                        <i class="fas fa-balance-scale"></i>
+                                                        <div class="trade-value-percentage">{% if trade.fairness_score %}{{ trade.fairness_score }}%{% else %}N/A{% endif %}</div>
+                                                        <div class="trade-value-text">{% if trade.fairness_score %}{% if trade.fairness_score >= 85 %}Very Fair Trade{% elif trade.fairness_score >= 70 %}Fair Trade{% elif trade.fairness_score >= 50 %}Somewhat Fair Trade{% else %}Unfair Trade{% endif %}{% else %}Pending Trade{% endif %}</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Trade Items -->
+                                                <div class="row mb-3">
+                                                    <!-- You Want -->
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-2">You Want:</h6>
+                                                        <a href="{{ url_for('main.item', item_id=trade.requested_item.id) }}" 
+                                                           class="text-decoration-none">
+                                                            <div class="d-flex align-items-center">
+                                                                {% if trade.requested_item.photos %}
+                                                                    <img src="{{ url_for('static', filename='uploads/items/' + trade.requested_item.id|string + '/' + trade.requested_item.photos[0].photo_path) }}"
+                                                                         style="width: 60px; height: 60px; object-fit: cover;"
+                                                                         alt="{{ trade.requested_item.name }}"
+                                                                         class="rounded">
+                                                                {% endif %}
+                                                                <div class="ms-3">
+                                                                    <h6 class="item-name text-dark mb-0">{{ trade.requested_item.name }}</h6>
+                                                                    {% if trade.requested_item.estimated_value is not none %}
+                                                                        <div class="item-price text-muted">RM{{ "%.2f"|format(trade.requested_item.estimated_value) }}</div>
+                                                                    {% else %}
+                                                                        <div class="item-price text-muted text-warning">Price not set</div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+
+                                                    <!-- You Offer -->
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-2">You Offer:</h6>
+                                                        {% if trade.offered_items %}
+                                                            {% for trade_item in trade.offered_items %}
+                                                                <a href="{{ url_for('main.item', item_id=trade_item.item.id) }}" 
+                                                                   class="text-decoration-none">
+                                                                    <div class="d-flex align-items-center mb-2">
+                                                                        {% if trade_item.item.photos %}
+                                                                            <img src="{{ url_for('static', filename='uploads/items/' + trade_item.item.id|string + '/' + trade_item.item.photos[0].photo_path) }}"
+                                                                                 style="width: 60px; height: 60px; object-fit: cover;"
+                                                                                 alt="{{ trade_item.item.name }}"
+                                                                                 class="rounded">
+                                                                        {% endif %}
+                                                                        <div class="ms-3">
+                                                                            <h6 class="item-name text-dark mb-0">{{ trade_item.item.name }}</h6>
+                                                                            {% if trade.requested_item.estimated_value is not none %}
+                                                                                <div class="item-price text-muted">RM{{ "%.2f"|format(trade.requested_item.estimated_value) }}</div>
+                                                                            {% else %}
+                                                                                <div class="item-price text-muted text-warning">Price not set</div>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </a>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <p class="text-muted mb-0">No items offered</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                {% if trade.message %}
+                                                    <div class="mb-3">
+                                                        <p class="text-muted small mb-0">Message: {{ trade.message }}</p>
+                                                    </div>
+                                                {% endif %}
+
+                                                <!-- Action Buttons for Sent Trades -->
+                                                <div class="action-buttons">
+                                                    {% if current_status == 'pending_approval' or not current_status %}
+                                                        <button onclick="performTradeAction({{ trade.id }}, 'cancel')" 
+                                                               class="btn btn-danger btn-sm trade-action-btn">Cancel</button>
+                                                    {% elif current_status == 'accepted' %}
+                                                        {% if not trade.sender_completed %}
+                                                            <button onclick="performTradeAction({{ trade.id }}, 'complete')" 
+                                                                   class="btn btn-success btn-sm trade-action-btn">Completed</button>
+                                                        {% endif %}
+                                                        <button onclick="performTradeAction({{ trade.id }}, 'cancel')" 
+                                                               class="btn btn-danger btn-sm trade-action-btn">Cancel</button>
+                                                    {% elif current_status == 'completed' %}
+                                                        {% set has_reviewed = trade.id|has_reviewed(current_user.id) %}
+                                                        {% if not has_reviewed %}
+                                                            <button type="button" class="btn btn-primary btn-sm review-button" 
+                                                                    data-bs-toggle="modal" data-bs-target="#reviewModal{{ trade.id }}"
+                                                                    {% if (trade.sender_id == current_user.id and not trade.receiver_completed) or 
+                                                                           (trade.receiver_id == current_user.id and not trade.sender_completed) %}disabled{% endif %}>
+                                                                Leave Review
+                                                            </button>
+                                                            {% if (trade.sender_id == current_user.id and not trade.receiver_completed) or 
+                                                                  (trade.receiver_id == current_user.id and not trade.sender_completed) %}
+                                                                <div class="text-warning small mt-2">
+                                                                    <i class="fas fa-exclamation-circle"></i>
+                                                                    Waiting for the other user to mark as completed
+                                                                        {% endif %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    <a href="{{ url_for('main.messages', user_id=trade.receiver.id) }}" 
+                                                       class="btn btn-outline-secondary btn-sm">Message</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-paper-plane fa-3x text-muted mb-3"></i>
+                                        <h6>No sent trades</h6>
+                                        <p class="text-muted small">You haven't sent any {{ current_status|replace('_', ' ') }} trades</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            {% if current_status == 'pending_approval' or not current_status %}
+                                <i class="fas fa-handshake fa-4x text-muted mb-3"></i>
+                                <h5>No pending trades</h5>
+                                <p class="text-muted">You don't have any trades waiting for approval</p>
+                            {% elif current_status == 'accepted' %}
+                                <i class="fas fa-check-circle fa-4x text-muted mb-3"></i>
+                                <h5>No accepted trades</h5>
+                                <p class="text-muted">You don't have any accepted trades</p>
+                            {% elif current_status == 'rejected' %}
+                                <i class="fas fa-times-circle fa-4x text-muted mb-3"></i>
+                                <h5>No rejected trades</h5>
+                                <p class="text-muted">You don't have any rejected trades</p>
+                            {% elif current_status == 'cancelled' %}
+                                <i class="fas fa-ban fa-4x text-muted mb-3"></i>
+                                <h5>No cancelled trades</h5>
+                                <p class="text-muted">You don't have any cancelled trades</p>
+                            {% else %}
+                                <i class="fas fa-check-circle fa-4x text-muted mb-3"></i>
+                                <h5>No completed trades</h5>
+                                <p class="text-muted">You don't have any completed trades</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modals -->
+{% for trade in current_trades %}
+<div class="modal fade" id="reviewModal{{ trade.id }}" tabindex="-1" aria-labelledby="reviewModalLabel{{ trade.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 800px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewModalLabel{{ trade.id }}">Leave a Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="reviewForm{{ trade.id }}" action="{{ url_for('main.review', trade_id=trade.id) }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- Item Info -->
+                    <div class="d-flex align-items-start mb-4">
+                        {% if trade.sender_id == current_user.id %}
+                            <!-- Show requested item for sent trades -->
+                            <div class="item-image-container">
+                                {% if trade.requested_item.photos %}
+                                    <img src="{{ url_for('static', filename='uploads/items/' + trade.requested_item.id|string + '/' + trade.requested_item.photos[0].photo_path) }}"
+                                         alt="{{ trade.requested_item.name }}"
+                                         style="width: 90px; height: 90px; object-fit: cover;">
+                                {% endif %}
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="mb-1 item-title">{{ trade.requested_item.name }}</h5>
+                            </div>
+                        {% else %}
+                            <!-- Show offered items for received trades -->
+                            {% for trade_item in trade.offered_items %}
+                                <div class="item-image-container me-3">
+                                    {% if trade_item.item.photos %}
+                                        <img src="{{ url_for('static', filename='uploads/items/' + trade_item.item.id|string + '/' + trade_item.item.photos[0].photo_path) }}"
+                                             alt="{{ trade_item.item.name }}"
+                                             style="width: 90px; height: 90px; object-fit: cover;">
+                                    {% endif %}
+                                </div>
+                                <div class="ms-3">
+                                    <h5 class="mb-1 item-title">{{ trade_item.item.name }}</h5>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Star Rating -->
+                    <div class="mb-4">
+                        <label class="form-label">Rating</label>
+                        <div class="star-rating">
+                            <div class="rating-group">
+                                <div class="stars-container">
+                                    {% for i in range(5, 0, -1) %}
+                                        <input type="radio" class="btn-check" name="rating" id="rating{{ trade.id }}-{{ i }}" value="{{ i }}" required {% if i == 5 %}checked{% endif %}>
+                                        <label class="star-label" for="rating{{ trade.id }}-{{ i }}">
+                                            <i class="far fa-star"></i>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                                <div class="rating-description ms-3">Excellent</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comment Box -->
+                    <div class="mb-4">
+                        <label for="comment{{ trade.id }}" class="form-label">Comment</label>
+                        <textarea class="form-control" id="comment{{ trade.id }}" name="comment" rows="3" required 
+                                  placeholder="Share your experience about this trade..."></textarea>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div class="mb-3">
+                        <label for="photos{{ trade.id }}" class="form-label">Add Photos (Optional)</label>
+                        <input type="file" class="form-control" id="photos{{ trade.id }}" name="photos" multiple accept="image/*">
+                        <div class="form-text">You can upload multiple photos to show the condition of the item.</div>
+                        <div class="image-preview mt-2 d-flex gap-2 flex-wrap"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" onclick="resetForm('reviewForm{{ trade.id }}')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block styles %}
+<style>
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #F33A6A;
+}
+
+.nav-tabs .nav-link.active {
+    color: #F33A6A;
+    border: none;
+    border-bottom: 2px solid #F33A6A;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+/* Update pending badge to perfect circle */
+.badge-round {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.75rem;
+}
+
+/* Card and Layout Styles */
+.card {
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    position: relative;
+}
+
+.trade-date-section {
+    line-height: 1;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.1rem;
+    white-space: nowrap;
+}
+
+.trade-date {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin: 0;
+    font-weight: 500;
+}
+
+.trade-time {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin: 0;
+    font-weight: 400;
+}
+
+.item-name {
+    font-size: 0.9rem;
+    color: #000;
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+}
+
+.item-price {
+    font-size: 0.85rem;
+    color: #333;
+    font-weight: 400;
+}
+
+.trade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin: 0;
+    padding: 1rem 0.75rem 0.5rem 0.75rem;
+    position: relative;
+}
+
+.user-profile-row {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.trade-right-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.trade-header-user .user-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.username-text, .location-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trade-header-section {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.trade-header-user:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.trade-header-user {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    width: 100%;
+}
+
+.trade-header-user img,
+.trade-header-user .avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.trade-header-user .avatar-placeholder {
+    background-color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.trade-header-user .user-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+    width: 100%;
+}
+
+.trade-header-user {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    width: 100%;
+}
+
+.trade-header-user .username {
+    font-weight: 500;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 2rem;
+}
+
+.trade-header-user .location {
+    color: #6c757d;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 2rem;
+}
+
+.username-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.location-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.trade-value-percentage {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+}
+
+.trade-value-text {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    white-space: nowrap;
+    line-height: 1;
+    min-width: max-content;
+    font-weight: 600;
+}
+
+/* Fairness indicator background colors */
+.trade-value-section.very-fair,
+.trade-value-section.fair {
+    background: linear-gradient(135deg, #10B981, #059669);
+}
+
+.trade-value-section.somewhat-fair {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+}
+
+.trade-value-section.unfair {
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+}
+
+.trade-value-section {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    width: fit-content;
+    color: white;
+    background: #6c757d;
+    white-space: nowrap;
+}
+
+.trade-value-section i {
+    color: #ffffff;
+    font-size: 0.7rem;
+}
+
+.trade-date-time {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    margin-top: 0.5rem;
+}
+
+.trade-date-time small {
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+/* New Trade Header Layout */
+.trade-header-new {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.trade-left {
+    flex: 1;
+}
+
+.trade-right {
+    text-align: right;
+}
+
+.username-new {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #212529;
+}
+
+.location-new {
+    font-size: 0.8rem;
+}
+
+.date-new {
+    font-size: 0.85rem;
+    color: #212529;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+.time-new {
+    font-size: 0.75rem;
+    color: #212529;
+    font-weight: 500;
+}
+
+.trade-content {
+    padding: 1rem 0.75rem 0 0.75rem;
+    background-color: #fff;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.trade-items {
+    margin: 0 0 0 0;
+}
+
+.trade-items .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.trade-items .col-md-6 {
+    padding-left: 0;
+    padding-right: 0.5rem;
+}
+
+.trade-items .col-md-6:last-child {
+    padding-right: 0;
+}
+
+.trade-items .item-container {
+    margin-bottom: 0.375rem;
+}
+
+.trade-items .item-container:last-child {
+    margin-bottom: 0;
+}
+
+.trade-items .d-flex img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+}
+
+.trade-items .ms-3 {
+    margin-left: 0.5rem;
+}
+
+.message-container {
+    margin: 0.5rem 0 0 0;
+    padding: 0;
+}
+
+.message-container p {
+    display: none;
+}
+
+.message-container:not(:empty) p {
+    display: block;
+}
+
+.message-container p {
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+.action-buttons {
+    margin: 0;
+    display: flex;
+    gap: 0.5rem;
+    padding: 0;
+    justify-content: flex-start;
+}
+
+.action-buttons .btn {
+    font-size: 0.875rem;
+    min-width: 80px;
+    text-align: center;
+}
+
+
+.trade-header .text-muted {
+    font-size: 0.875rem;
+}
+
+.trade-header small {
+    font-size: 0.75rem;
+}
+
+.trade-header a {
+    color: inherit;
+}
+
+.trade-header a:hover {
+    text-decoration: none;
+}
+
+.trade-header .fw-medium {
+    font-size: 0.9rem;
+}
+
+.trade-header .small {
+    font-size: 0.8rem;
+}
+
+.vr {
+    opacity: 0.1;
+}
+
+.border-end {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Star Rating Styles */
+.star-rating {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0;
+}
+
+.rating-group {
+    display: flex;
+    align-items: center;
+}
+
+.stars-container {
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.star-label {
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0 0.2rem;
+}
+
+.star-label i {
+    color: var(--primary-color);
+    opacity: 0.3;
+}
+
+.btn-check:checked + .star-label i {
+    color: var(--primary-color);
+    opacity: 1;
+}
+
+.btn-check:checked + .star-label ~ .star-label i {
+    color: var(--primary-color);
+    opacity: 1;
+}
+
+.rating-description {
+    font-size: 0.9rem;
+    color: #212529;
+    min-width: 80px;
+    margin-left: 1rem;
+}
+
+.item-image-container {
+    border: 1px solid #dee2e6;
+    width: 90px;
+    height: 90px;
+}
+
+.item-image-container img {
+    display: block;
+}
+
+.item-title {
+    font-size: 1.1rem;
+    color: #212529;
+}
+
+/* Review section in profile */
+.reviews-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 2rem;
+}
+
+.review-card {
+    border-bottom: 1px solid #eee;
+    padding: 1.5rem 0;
+}
+
+.review-card:last-child {
+    border-bottom: none;
+}
+
+.review-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+}
+
+.reviewer-info:hover {
+    color: var(--primary-color);
+}
+
+.review-stars {
+    margin-bottom: 1rem;
+}
+
+.review-stars i {
+    color: var(--primary-color);
+}
+
+.review-content {
+    margin-bottom: 1.5rem;
+}
+
+.reviewed-item {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+/* Modal buttons */
+.modal-footer .btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.text-warning {
+    color: var(--primary-color);
+}
+
+.fa-star {
+    color: var(--primary-color);
+}
+
+.far.fa-star {
+    color: var(--primary-color);
+    opacity: 0.3;
+}
+
+.trade-message {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+}
+
+.trade-location {
+    color: #6c757d;
+}
+
+.trade-content {
+    padding: 0 1rem 0.7rem 1rem;
+    background-color: #fff;
+    border-radius: 0.5rem;
+}
+
+.smaller-text {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Star Rating Functionality
+    document.querySelectorAll('.rating-group').forEach(group => {
+        const inputs = group.querySelectorAll('input[type="radio"]');
+        const descriptionElement = group.querySelector('.rating-description');
+        const descriptions = {
+            5: 'Excellent',
+            4: 'Very Good',
+            3: 'Good',
+            2: 'Fair',
+            1: 'Poor'
+        };
+
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const rating = this.value;
+                descriptionElement.textContent = descriptions[rating];
+                updateStars(group, rating);
+            });
+        });
+
+        // Initialize with 5 stars
+        updateStars(group, 5);
+    });
+
+    function updateStars(group, rating) {
+        const stars = group.querySelectorAll('.star-label i');
+        stars.forEach((star, index) => {
+            const starValue = stars.length - index;
+            if (starValue <= rating) {
+                star.classList.remove('far');
+                star.classList.add('fas');
+            } else {
+                star.classList.remove('fas');
+                star.classList.add('far');
+            }
+        });
+    }
+
+    // Image Preview Functionality
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+        input.addEventListener('change', function() {
+            const previewContainer = this.parentElement.querySelector('.image-preview');
+            previewContainer.innerHTML = '';
+
+            if (this.files.length > 0) {
+                Array.from(this.files).forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        const preview = document.createElement('div');
+                        preview.className = 'position-relative';
+                        preview.style.width = '80px';
+                        preview.style.height = '80px';
+                        
+                        reader.onload = e => {
+                            preview.innerHTML = `
+                                <img src="${e.target.result}" class="rounded" style="width: 100%; height: 100%; object-fit: cover;">
+                            `;
+                        };
+                        
+                        reader.readAsDataURL(file);
+                        previewContainer.appendChild(preview);
+                    }
+                });
+            }
+        });
+    });
+});
+
+function resetForm(formId) {
+    const form = document.getElementById(formId);
+    form.reset();
+    const previewContainer = form.querySelector('.image-preview');
+    if (previewContainer) {
+        previewContainer.innerHTML = '';
+    }
+    // Reset stars to initial state
+    const group = form.querySelector('.rating-group');
+    if (group) {
+        const fiveStarInput = group.querySelector('input[value="5"]');
+        if (fiveStarInput) {
+            fiveStarInput.checked = true;
+            fiveStarInput.dispatchEvent(new Event('change'));
+        }
+    }
+}
+
+// Trade action functions
+async function performTradeAction(tradeId, action) {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const response = await fetch(`/trade/${tradeId}/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showTradeActionModal(data.message, 'success');
+            // Note: Page will reload when user closes the modal to show updated status
+        } else {
+            showTradeActionModal(data.message, 'error');
+            // Restore button state
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showTradeActionModal('An error occurred. Please try again.', 'error');
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+function showTradeActionModal(message, type) {
+    // Create modal HTML
+    const modalId = 'tradeActionModal';
+    let existingModal = document.getElementById(modalId);
+    
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const iconClass = type === 'success' ? 'fas fa-check-circle text-success' : 'fas fa-exclamation-circle text-danger';
+    const titleText = type === 'success' ? 'Success' : 'Error';
+    
+    const modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title">
+                            <i class="${iconClass} me-2"></i>${titleText}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body pt-0">
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal with no auto-hide
+    const modal = new bootstrap.Modal(document.getElementById(modalId), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    modal.show();
+    
+    // Remove modal from DOM when hidden
+    document.getElementById(modalId).addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        // Reload page when modal is closed to show updated status
+        window.location.reload();
+    });
+}
+</script>
+{% endblock %}

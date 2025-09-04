@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="row">
+        <!-- Profile Header -->
+        <div class="col-11">
+        <div class="card shadow mb-4">
+                <div class="card-body py-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <!-- Profile Picture, Name and Username Column -->
+                        <div class="d-flex align-items-center">
+                            {% if user.profile_photo %}
+                                <img src="{{ url_for('static', filename='uploads/profile_photos/' + user.profile_photo) }}"
+                                     class="rounded-circle me-3" style="width: 64px; height: 64px; object-fit: cover;"
+                                     alt="{{ user.username }}">
+                {% else %}
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3"
+                                     style="width: 64px; height: 64px;">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <h4 class="mb-1" style="font-size: 1.1rem;">@{{ user.username }}</h4>
+                                <button class="btn btn-link p-0 small" data-bs-toggle="modal" data-bs-target="#profileDetailsModal" style="font-size: 0.9rem; color: rgba(0, 0, 0, 0.6); font-weight: normal;">
+                                         Profile details <i class="fas fa-chevron-right fa-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stats Section (Rating and Joined Date) -->
+                        <div class="d-flex align-items-center">
+                            <!-- Rating Column -->
+                            <div style="width: 100px; text-align: left;">
+                                <div class="text-warning mb-1">
+                                    <i class="fas fa-star"></i>
+                                    <span class="fw-bold text-dark">{{ "%.1f"|format(avg_rating) if review_count > 0 else "N/A" }}</span>
+                                </div>
+                                <p class="text-muted mb-0" style="font-size: 0.85rem;">{% if review_count > 0 %}({{ review_count }} reviews){% else %}No reviews yet{% endif %}</p>
+                            </div>
+
+                            <!-- Divider -->
+                            <div class="vr mx-3"></div>
+
+                            <!-- Time Column -->
+                            <div style="width: 100px; text-align: left;">
+                                <div class="mb-1 fw-bold">{{ time_display }}</div>
+                                <p class="text-muted mb-0" style="font-size: 0.85rem;">Joined</p>
+                            </div>
+
+                            <!-- Edit Profile Button -->
+                            {% if current_user.id == user.id %}
+                                <div class="ms-4">
+                                    <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-outline-secondary btn-sm">
+                                        Edit Profile
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs and Content -->
+                    <div class="row">
+        <div class="col-12">
+            <!-- Tabs for Listings and Reviews -->
+            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if not request.endpoint or 'listings' in request.endpoint or request.endpoint == 'auth.profile' %}active{% endif %}" href="{{ url_for('auth.profile', user_id=user.id) }}">
+                        Listings
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if 'reviews' in request.endpoint %}active{% endif %}" href="{{ url_for('auth.profile_reviews', user_id=user.id) }}">
+                        Reviews
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Listings Content -->
+            {% if not request.endpoint or 'reviews' not in request.endpoint %}
+                    {% if items %}
+                        <div class="row g-4">
+                            {% for item in items %}
+                                    <div class="col-md-2-4" style="width: 20%;">
+                                        <div class="card h-100 item-card">
+                                            <a href="{{ url_for('main.item', item_id=item.id) }}" class="text-decoration-none">
+                                                <div class="square-img-container position-relative">
+                                                    {% if item.photos %}
+                                                        <img src="{{ url_for('static', filename='uploads/items/' + item.id|string + '/' + item.photos[0].photo_path) }}"
+                                                             class="card-img-top" alt="{{ item.name }}">
+                                                    {% else %}
+                                                        <div class="bg-secondary d-flex align-items-center justify-content-center h-100">
+                                                            <i class="fas fa-image fa-3x text-white"></i>
+                        </div>
+                                                    {% endif %}
+                                                    <!-- Check if item is traded -->
+                                                    {% if item.is_traded %}
+                                                        <div class="traded-overlay">
+                                                            <span class="traded-badge">TRADED</span>
+                                                        </div>
+                                                    {% endif %}
+                        </div>
+                                                <div class="card-body d-flex flex-column justify-content-center" style="padding: 1rem 0.75rem;">
+                                                    <h6 class="card-title text-dark mb-1" style="margin-top: 0.25rem;">{{ item.name }}</h6>
+                                                    {% if item.estimated_value %}
+                                                    <p class="card-text mb-1">
+                                                        <small class="text-dark fw-bold">
+                                                            RM {{ "%.2f"|format(item.estimated_value) }}
+                                                        </small>
+                                                    </p>
+                                                    {% endif %}
+                                                    <p class="card-text text-muted mb-0">
+                                                        <small>{{ item.condition.replace('_', ' ')|title }}</small>
+                                                    </p>
+                    </div>
+                                            </a>
+                    </div>
+                    </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                            <h3>No items listed yet</h3>
+                            {% if current_user.id == user.id %}
+                                <p class="text-muted">Start trading by adding your first item!</p>
+                                <a href="{{ url_for('main.new_item') }}" class="btn btn-primary">
+                                    Add Item
+                                </a>
+                            {% else %}
+                                <p class="text-muted">This user hasn't listed any items yet.</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+            {% else %}
+                <!-- Reviews Content -->
+                {% if reviews %}
+                    <div class="reviews-container">
+                        {% for review in reviews %}
+                            <a href="{{ url_for('main.my_trades', status='completed') }}" class="review-link">
+                                <div class="review-card">
+                                    <!-- Reviewer Info and Rating -->
+                                    <div class="review-header">
+                                        <a href="{{ url_for('auth.profile', user_id=review.reviewer.id) }}" class="reviewer-info">
+                                            {% if review.reviewer.profile_photo %}
+                                                <img src="{{ url_for('static', filename='uploads/profile_photos/' + review.reviewer.profile_photo) }}"
+                                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;"
+                                                     alt="{{ review.reviewer.username }}">
+                                            {% else %}
+                                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2"
+                                                     style="width: 32px; height: 32px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="small">
+                                                    <div class="fw-bold text-dark mb-0">{{ review.reviewer.name }}</div>
+                                                    <small class="text-muted">{{ review.created_at|malaysia_time|format_date }}</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+
+                                    <!-- Rating Stars -->
+                                    <div class="review-stars">
+                                        {% for _ in range(review.rating) %}
+                                            <i class="fas fa-star"></i>
+                                        {% endfor %}
+                                        {% for _ in range(5 - review.rating) %}
+                                            <i class="far fa-star"></i>
+                                        {% endfor %}
+                                    </div>
+
+                                    <!-- Review Comment -->
+                                    <div class="review-content">
+                                        <p class="mb-0">{{ review.comment }}</p>
+                                    </div>
+
+                                    <!-- Review Photos -->
+                                    {% if review.photos %}
+                                        <div class="review-photos">
+                                            {% for photo in review.photos %}
+                                                <img src="{{ url_for('static', filename='uploads/reviews/' + review.id|string + '/' + photo.photo_path) }}"
+                                                     class="review-photo"
+                                                     alt="Review photo">
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+
+                                    <!-- Trade Item Info -->
+                                    <div class="reviewed-item">
+                                        <div class="d-flex align-items-start">
+                                            {% if review.trade.requested_item.photos %}
+                                                <div class="item-image-container">
+                                                    <img src="{{ url_for('static', filename='uploads/items/' + review.trade.requested_item.id|string + '/' + review.trade.requested_item.photos[0].photo_path) }}"
+                                                         alt="{{ review.trade.requested_item.name }}">
+                                                </div>
+                                            {% endif %}
+                                            <div class="ms-2">
+                                                <p class="item-name-small">{{ review.trade.requested_item.name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="far fa-star fa-4x text-muted mb-3"></i>
+                        <h3>No reviews yet</h3>
+                        <p class="text-muted">Reviews from trades will appear here</p>
+                    </div>
+                {% endif %}
+            {% endif %}
+                    </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Details Modal -->
+<div class="modal fade" id="profileDetailsModal" tabindex="-1" aria-labelledby="profileDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="profileDetailsModalLabel">About</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-3">Account details</h6>
+                    <div class="mb-2">
+                        <i class="far fa-user me-2"></i>
+                        {{ user.name }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="far fa-calendar me-2"></i>
+                        {{ user.created_at|malaysia_time|format_date }}
+                    </div>
+                    <div class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        {{ user.city }}, {{ user.region }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.square-img-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
+    overflow: hidden;
+}
+
+.square-img-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #F33A6A;
+}
+
+.nav-tabs .nav-link.active {
+    color: #F33A6A;
+    border: none;
+    border-bottom: 2px solid #F33A6A;
+    background-color: white;
+}
+
+.card-title {
+    font-size: 0.85rem;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.btn-link {
+    text-decoration: none;
+}
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.modal-title {
+    font-size: 1.1rem;
+    }
+    
+/* Review section styles */
+.reviews-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 0.5rem 2rem;
+    }
+
+.review-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.2s ease;
+}
+
+.review-link:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.review-link:hover .review-card {
+    background-color: rgba(243, 58, 106, 0.05);
+    transform: translateX(5px);
+}
+    
+.review-card {
+    border-bottom: 1px solid #eee;
+    padding: 0.25rem 0;
+}
+
+.review-card:last-child {
+    border-bottom: none;
+    padding-bottom: 0.5rem;
+}
+
+.review-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.15rem;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s;
+}
+
+.reviewer-info:hover {
+    color: var(--primary-color);
+}
+
+.review-stars {
+    margin-bottom: 0.15rem;
+}
+
+.review-stars i {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+}
+
+.review-content {
+    margin-bottom: 0.15rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.review-photos {
+    display: flex;
+    gap: 0.1rem;
+    flex-wrap: wrap;
+    margin: 0 0 0.3rem 0;
+}
+
+.review-photo {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+.reviewed-item {
+    background-color: #f2f2f2;
+    border-radius: 4px;
+    padding: 0.15rem;
+    margin: 0;
+}
+
+.item-image-container {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+}
+
+.item-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Traded overlay styles */
+.traded-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.traded-badge {
+    background-color: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Enhanced Item Card Styles */
+.item-card {
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 16px;
+    box-shadow: 
+        0 2px 8px rgba(0,0,0,0.1),
+        0 0 0 1px rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    background: white;
+}
+
+.item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 8px 24px rgba(0,0,0,0.15),
+        0 0 0 1px rgba(255,255,255,0.1);
+    border-color: rgba(243, 58, 106, 0.2);
+}
+
+.item-card .card-body {
+    padding: 1rem;
+    background: white;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const triggerTabList = [].slice.call(document.querySelectorAll('#profileTabs button'));
+    triggerTabList.forEach(function(triggerEl) {
+        const tabTrigger = new bootstrap.Tab(triggerEl);
+        triggerEl.addEventListener('click', function(event) {
+            event.preventDefault();
+            tabTrigger.show();
+        });
+    });
+});
+</script>
+{% endblock %}

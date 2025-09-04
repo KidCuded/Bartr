@@ -1,0 +1,1303 @@
+{% extends "base.html" %}
+
+{% block title %}Messages{% endblock %}
+
+{% block styles %}
+<style>
+.chat-container {
+    height: calc(100vh - 120px);
+    margin: 20px auto;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    display: flex;
+    overflow: hidden;
+}
+
+.users-list {
+    width: 320px;
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    background: white;
+}
+
+.users-list-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+
+.users-list-header h5 {
+    color: var(--text-dark);
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.users-list-content {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.user-item {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: flex-start;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid rgba(243, 58, 106, 0.05);
+    position: relative;
+}
+
+.user-item:hover {
+    background-color: var(--bg-light);
+    text-decoration: none;
+    color: inherit;
+    transform: translateX(2px);
+}
+
+.user-item.active {
+    background-color: rgba(243, 58, 106, 0.08);
+    border-left: 3px solid var(--primary-color);
+}
+
+.user-avatar {
+    min-width: 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #6c757d, #495057);
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-avatar i {
+    color: white;
+    font-size: 1.2rem;
+}
+
+.default-avatar {
+    width: 100%;
+    height: 100%;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.user-info {
+    flex-grow: 1;
+    min-width: 0;
+    max-width: calc(100% - 55px);
+    display: flex;
+    flex-direction: column;
+}
+
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.user-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+    max-width: calc(100% - 70px);
+    color: var(--text-dark);
+    font-size: 0.95rem;
+}
+
+.message-time-preview {
+    font-size: 0.75rem;
+    color: #6c757d;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.message-preview-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.message-preview {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    margin-right: 8px;
+    line-height: 1.3;
+}
+
+.message-preview.unread {
+    color: #212529;
+    font-weight: 500;
+}
+
+.unread-count {
+    background-color: var(--primary-color);
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0.75rem;
+}
+
+.message-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex: 1;
+    min-width: 0;
+}
+
+.message-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: url('/static/images/') center/cover;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
+}
+
+.message-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.message-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message-container::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+.message-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+.message-wrapper {
+    margin: 0;
+    clear: both;
+    overflow: hidden;
+    width: 100%;
+}
+
+.message-group {
+    margin: 0 0 4px 0;
+    clear: both;
+    overflow: visible;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.message-group + .message-group {
+    margin-top: 8px;
+}
+
+.message-group.sent {
+    align-items: flex-end;
+}
+
+.message-group.received {
+    align-items: flex-start;
+}
+
+.message {
+    position: relative;
+    padding: 0.75rem 1rem;
+    border-radius: 1.125rem;
+    word-wrap: break-word;
+    max-width: 65%;
+    margin-top: 0.1rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Message image styling */
+.message.image-message {
+    padding: 2px;
+    margin: 0;
+    border-radius: 10px;
+    background: none;
+    max-width: 200px;
+    width: 200px;
+    font-size: 0;
+    line-height: 0;
+    display: block;
+}
+
+.message.image-message.sent {
+    background: rgba(243, 58, 106, 0.08);;
+}
+
+.message.image-message.received {
+    background: #f5f5f5;
+}
+
+.message-content {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+/* Container for image and timestamp */
+.image-message-wrapper {
+    position: relative;
+}
+
+.message-image-container {
+    width: 196px;
+    height: 196px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.05);
+    position: relative;
+    font-size: initial;
+    line-height: initial;
+    padding: 0;
+    margin: 0;
+}
+
+.message-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+    display: block;
+}
+
+/* Image message timestamp */
+.image-message .message-time {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    font-size: 0.75rem;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 1;
+    font-weight: 500;
+}
+
+.message.sent {
+    background: rgba(243, 58, 106, 0.08);;
+    color: #333;
+    border-bottom-right-radius: 0.25rem;
+    align-self: flex-end;
+}
+
+.message.received {
+    background-color: #f5f5f5;
+    border-bottom-left-radius: 0.25rem;
+    align-self: flex-start;
+    color: var(--text-dark);
+}
+
+.message-info {
+    clear: both;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.2rem;
+}
+
+.message-info.sent {
+    float: right;
+    text-align: right;
+}
+
+.message-info.received {
+    float: left;
+}
+
+.read-status {
+    display: block;
+    font-size: 0.7rem;
+    margin-top: 0.1rem;
+}
+
+.message.sent + .message-info .read-status {
+    color: #6c757d;
+}
+
+.conversation {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 300px); 
+}
+
+.conversation-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    height: 70px;
+    display: flex;
+    align-items: center;
+    background: white;
+}
+
+.conversation-header .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 15px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #6c757d;
+}
+
+.conversation-header .user-info {
+    flex-grow: 1;
+}
+
+.conversation-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.user-status {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.no-conversation {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    background: #fafbfc;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.no-conversation i {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    opacity: 0.6;
+}
+
+.message-form {
+    padding: 1rem;
+    background: white;
+    border-top: 1px solid #dee2e6;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.message-input {
+    background: white;
+    border-top: 1px solid var(--border-light);
+    padding: 0;
+    margin: 0;
+    position: relative;
+}
+
+.message-input form {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    padding: 1rem;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.message-input textarea {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    margin: 0;
+    min-height: 44px;
+    max-height: 100px;
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-light);
+    border-radius: 1.5rem;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    resize: none;
+}
+
+.message-input textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(243, 58, 106, 0.1);
+    background-color: white;
+}
+
+.message-input .btn-primary {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+
+.message-input .btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.image-preview-container {
+    display: none; /* Hidden by default */
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    margin: 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.image-preview-container.has-images {
+    display: flex; /* Only show when it has images */
+}
+
+.image-preview-wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.remove-image {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: rgba(128, 128, 128, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+}
+
+.remove-image:hover {
+    background: rgba(128, 128, 128, 0.7);
+}
+
+.message-input:focus {
+    outline: none;
+    border-color: #ff69b4;
+    box-shadow: 0 0 0 0.2rem rgba(255,105,180,.25);
+}
+
+.action-button {
+    height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.image-upload-btn {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #007bff;
+    cursor: pointer;
+    width: 40px;
+    padding: 0;
+}
+
+.image-upload-btn:hover {
+    background-color: #e9ecef;
+    color: #0056b3;
+}
+
+.send-btn {
+    background-color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    color: white;
+    gap: 4px;
+    padding: 8px 16px;
+}
+
+.send-btn:hover {
+    background-color: #d62e59;
+    border-color: #d62e59;
+}
+
+.message-images-grid {
+    display: none;
+}
+
+.message-image-preview {
+    max-width: 100px;
+    max-height: 100px;
+    display: none;
+    margin: 5px 4px;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.image-upload-input {
+    display: none;
+}
+
+/* Modal styles for image preview */
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.9);
+}
+
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 90vh;
+    margin-top: 40px;
+    object-fit: contain;
+}
+
+.modal-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    border: none;
+    padding: 15px;
+    cursor: pointer;
+    font-size: 24px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    z-index: 1060;
+}
+
+.modal-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.modal-prev {
+    left: 20px;
+}
+
+.modal-next {
+    right: 20px;
+}
+
+.modal-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    z-index: 1060;
+}
+
+.close {
+    position: absolute;
+    right: 35px;
+    top: 15px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1060;
+}
+
+.date-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: #000;
+}
+
+.date-divider span {
+    padding: 0.4rem 0.8rem;
+    background: white;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    color: #000;
+    font-weight: 500;
+    margin: 0 auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.message-info-container {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.message-text {
+    display: inline;
+    margin-bottom: 4px;
+}
+
+.message-time {
+    display: inline-block;
+    font-size: 0.7rem;
+    color: rgba(51, 51, 51, 0.7);
+    white-space: nowrap;
+    position: relative;
+    bottom: -2px;
+    margin-left: 6px;
+}
+
+.message.received .message-time {
+    color: white;
+}
+
+.message.received .message-time {
+    color: var(--text-muted);
+}
+
+/* Specific styles for text messages */
+.message:not(.image-message) {
+    /* Styles handled by .message.received and .message.sent */
+}
+
+.message.sent:not(.image-message) {
+    background: rgba(243, 58, 106, 0.08);;
+    color: #333;
+}
+
+/* Add preview modal for images before sending */
+.preview-modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.9);
+}
+
+.preview-modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 90vh;
+    margin-top: 40px;
+}
+
+.preview-close {
+    position: absolute;
+    right: 35px;
+    top: 15px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1060;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="chat-container">
+        <!-- Left side: Users list -->
+        <div class="users-list">
+            <div class="users-list-header">
+                <h5 class="mb-0">Messages</h5>
+            </div>
+            <div class="users-list-content">
+                {% for user, unread_count, latest_content, latest_time, latest_sender in message_partners %}
+                <a href="{{ url_for('main.messages', user_id=user.id) }}" 
+                   class="user-item {% if other_user and user.id == other_user.id %}active{% endif %}">
+                    <div class="user-avatar">
+                        {% if user.profile_photo %}
+                            <img src="{{ url_for('static', filename='uploads/profile_photos/' + user.profile_photo) }}" 
+                                 alt="{{ user.username }}">
+                        {% else %}
+                            <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-header">
+                            <div class="user-name">{{ user.username }}</div>
+                            <div class="message-time-preview">
+                                {% if latest_time %}
+                                    {% if latest_time|is_today %}
+                                        {{ latest_time|format_time }}
+                                    {% elif latest_time|is_yesterday %}
+                                        Yesterday
+                                    {% else %}
+                                        {{ latest_time|format_date }}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="message-preview-container">
+                            <div class="message-preview {% if unread_count > 0 %}unread{% endif %}">
+                                {% if latest_content %}
+                                    {% if latest_sender == current_user.id %}
+                                        You: {{ latest_content }}
+                                    {% else %}
+                                        {{ latest_content }}
+                                    {% endif %}
+                                {% else %}
+                                    {% if latest_sender == current_user.id %}
+                                        You: <i class="far fa-image"></i> Photo
+                                    {% else %}
+                                        <i class="far fa-image"></i> Photo
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% if unread_count > 0 %}
+                                <span class="unread-count">{{ unread_count }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right side: Conversation -->
+        {% if other_user %}
+        <div class="conversation">
+            <div class="conversation-header">
+                <div class="chat-header">
+                    <a href="{{ url_for('auth.profile', user_id=other_user.id) }}" class="text-decoration-none text-dark">
+                        <div class="d-flex align-items-center">
+                    {% if other_user.profile_photo %}
+                        <img src="{{ url_for('static', filename='uploads/profile_photos/' + other_user.profile_photo) }}" 
+                                     class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;"
+                             alt="{{ other_user.username }}">
+                    {% else %}
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2"
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                    {% endif %}
+                            <div>
+                                <h6 class="mb-0">{{ other_user.name }}</h6>
+                                <small class="text-muted">@{{ other_user.username }}</small>
+                </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="message-container" id="messageContainer">
+                {% set ns = namespace(current_date=none) %}
+                {% for message in messages %}
+                    {% set message_date = message.created_at.date() %}
+                    {% set today = now.date() %}
+                    {% set yesterday = today - timedelta(days=1) %}
+                    
+                    {% if message_date != ns.current_date %}
+                        <div class="date-divider">
+                            <span>
+                                {% if message_date == today %}
+                                    Today
+                                {% elif message_date == yesterday %}
+                                    Yesterday
+                                {% else %}
+                                    {{ message_date.strftime('%B %d, %Y') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% set ns.current_date = message_date %}
+                    {% endif %}
+                    
+                    <div class="message-wrapper">
+                        <div class="message-group {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                            {% if message.images %}
+                                {% for image in message.images %}
+                                    <div class="message image-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                                        <div class="message-image-container">
+                                            <img src="{{ url_for('static', filename='uploads/message_images/' + image.image_path) }}" 
+                                                 alt="Message image" 
+                                                 class="message-image"
+                                                 data-message-id="{{ message.id }}">
+                                            <div class="message-time">{{ message.created_at|format_time }}</div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            {% if message.content %}
+                                <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                                    <div class="message-content">
+                                        <div class="message-text">{{ message.content }}</div>
+                                        <div class="message-time">{{ message.created_at|format_time }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if message.sender_id == current_user.id and loop.last %}
+                                {% if message.is_read %}
+                                    <div class="message-info sent">
+                                        <span class="read-status">
+                                            <i class="fas fa-check-double"></i> Read
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <div class="message-info sent">
+                                        <span class="read-status">
+                                            <i class="fas fa-check"></i> Sent
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Image Modal -->
+            <div id="imageModal" class="image-modal">
+                <span class="close" onclick="closeImageModal()">&times;</span>
+                <button class="modal-nav-btn modal-prev" onclick="navigateImage(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="modal-nav-btn modal-next" onclick="navigateImage(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <img class="modal-content" id="modalImage">
+                <div class="modal-counter" id="imageCounter"></div>
+            </div>
+
+            <div class="message-input">
+                <div id="imagePreviewContainer" class="image-preview-container">
+                    <!-- Image previews will be added here -->
+                </div>
+                <form id="messageForm" action="{{ url_for('main.messages', user_id=other_user.id) }}" method="POST">
+                    <label for="messagePhotos" class="btn" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0;">
+                        <i class="fas fa-paperclip"></i>
+                    </label>
+                    <input type="file" id="messagePhotos" name="photos" class="d-none" multiple accept="image/*">
+                    <textarea class="form-control" id="messageText" name="content" rows="1" placeholder="Type a message..."></textarea>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+            </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-conversation">
+            <i class="fas fa-comments"></i>
+            <p>Select a user to start messaging</p>
+            <small>Choose a conversation from the left to begin chatting</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Preview Modal for Images Before Sending -->
+<div id="previewModal" class="preview-modal">
+    <span class="preview-close" onclick="closePreviewModal()">&times;</span>
+    <img class="preview-modal-content" id="previewModalImage">
+</div>
+
+<!-- Photo Upload Modal -->
+<div class="modal fade" id="photoUploadModal" tabindex="-1" aria-labelledby="photoUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="photoUploadModalLabel">Send Photos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalImagePreviewContainer" class="mb-3 d-flex flex-wrap gap-2"></div>
+                <div class="form-floating">
+                    <textarea class="form-control" id="modalMessageText" rows="3" style="height: 100px;" placeholder="Add a message (optional)"></textarea>
+                    <label for="modalMessageText">Message (optional)</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendPhotosWithMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Scroll to bottom of messages on load
+    const messageContainer = document.getElementById('messageContainer');
+    if (messageContainer) {
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
+
+    let allChatImages = [];
+    let currentImageIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Collect all chat images
+        updateImageList();
+        
+        // Image click handler
+        document.querySelectorAll('.message-image').forEach((img, index) => {
+            img.addEventListener('click', function() {
+                updateImageList();
+                currentImageIndex = allChatImages.findIndex(image => image.src === this.src);
+                openImageModal(this.src);
+            });
+        });
+    });
+
+    function updateImageList() {
+        allChatImages = Array.from(document.querySelectorAll('.message-image'));
+    }
+
+    function openImageModal(src) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modalImg.src = src;
+        modal.style.display = "block";
+        updateImageCounter();
+        updateNavigationButtons();
+    }
+
+    function navigateImage(direction) {
+        currentImageIndex = (currentImageIndex + direction + allChatImages.length) % allChatImages.length;
+        document.getElementById('modalImage').src = allChatImages[currentImageIndex].src;
+        updateImageCounter();
+        updateNavigationButtons();
+    }
+
+    function updateImageCounter() {
+        const counter = document.getElementById('imageCounter');
+        counter.textContent = `${currentImageIndex + 1} / ${allChatImages.length}`;
+    }
+
+    function updateNavigationButtons() {
+        const prevBtn = document.querySelector('.modal-prev');
+        const nextBtn = document.querySelector('.modal-next');
+        
+        if (allChatImages.length <= 1) {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = 'flex';
+            nextBtn.style.display = 'flex';
+        }
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = "none";
+            }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('imageModal').style.display === "block") {
+                if (e.key === "ArrowLeft") {
+                    navigateImage(-1);
+                } else if (e.key === "ArrowRight") {
+                    navigateImage(1);
+                } else if (e.key === "Escape") {
+                    closeImageModal();
+                }
+            }
+    });
+
+    function updateReadStatus() {
+        const otherUserId = '{{ other_user.id if other_user else "" }}';
+        if (!otherUserId) return;
+
+        fetch(`/messages/${otherUserId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                // Only update status if the last message is from the current user
+                const lastMessage = document.querySelector('.message-wrapper:last-child .message');
+                if (!lastMessage || !lastMessage.classList.contains('sent')) {
+                    return;
+                }
+
+                const messageInfo = document.querySelector('.message-wrapper:last-child .message-info');
+                if (messageInfo) {
+                    if (data.is_read) {
+                        messageInfo.innerHTML = `
+                            <span class="read-status">
+                                <i class="fas fa-check-double"></i> Read
+                            </span>
+                        `;
+                    } else {
+                        messageInfo.innerHTML = `
+                            <span class="read-status">
+                                <i class="fas fa-check"></i> Sent
+                            </span>
+                        `;
+                    }
+                }
+            });
+    }
+
+    // Update read status every 5 seconds
+    setInterval(updateReadStatus, 5000);
+
+    // Update unread count every 30 seconds
+    setInterval(function() {
+        fetch("{{ url_for('main.get_unread_count') }}")
+            .then(response => response.json())
+            .then(data => {
+                const unreadBadge = document.getElementById('unread-messages');
+                if (data.count > 0) {
+                    unreadBadge.style.display = 'inline';
+                    unreadBadge.textContent = data.count;
+                } else {
+                    unreadBadge.style.display = 'none';
+                }
+            });
+    }, 30000);
+
+    // Preview Modal Functions
+    function openPreviewModal(src) {
+        const modal = document.getElementById('previewModal');
+        const modalImg = document.getElementById('previewModalImage');
+        modalImg.src = src;
+        modal.style.display = "block";
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').style.display = "none";
+    }
+
+    // Image preview handling
+    document.getElementById('messagePhotos').addEventListener('change', function(e) {
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const files = Array.from(this.files);
+        
+        // Clear existing previews
+        previewContainer.innerHTML = '';
+        
+        if (files.length > 0) {
+            previewContainer.classList.add('has-images');
+            
+            files.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    const previewWrapper = document.createElement('div');
+                    previewWrapper.className = 'image-preview-wrapper';
+                    
+                    const preview = document.createElement('img');
+                    preview.className = 'image-preview';
+                    preview.style.cursor = 'pointer';
+                    
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'remove-image';
+                    removeButton.innerHTML = '<i class="fas fa-times"></i>';
+                    removeButton.onclick = function(e) {
+                        e.stopPropagation();
+                        previewWrapper.remove();
+                        
+                        // Create a new FileList without this file
+                        const dt = new DataTransfer();
+                        const input = document.getElementById('messagePhotos');
+                        const { files } = input;
+                        
+                        for (let i = 0; i < files.length; i++) {
+                            const f = files[i];
+                            if (i !== index) dt.items.add(f);
+                        }
+                        
+                        input.files = dt.files;
+                        
+                        // Hide container if no images left
+                        if (previewContainer.children.length === 0) {
+                            previewContainer.classList.remove('has-images');
+                        }
+                    };
+                    
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                    }
+                    
+                    reader.readAsDataURL(file);
+                    
+                    preview.onclick = function() {
+                        openPreviewModal(this.src);
+                    };
+                    
+                    previewWrapper.appendChild(preview);
+                    previewWrapper.appendChild(removeButton);
+                    previewContainer.appendChild(previewWrapper);
+                }
+            });
+        } else {
+            previewContainer.classList.remove('has-images');
+        }
+    });
+
+    // Close preview modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('previewModal');
+        if (event.target == modal) {
+            closePreviewModal();
+        }
+    }
+
+    // Close preview modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            closePreviewModal();
+        }
+    });
+
+    // Message form submission
+    document.getElementById('messageForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const messageText = document.getElementById('messageText').value;
+        const photos = document.getElementById('messagePhotos').files;
+        
+        if (messageText.trim()) {
+            formData.append('content', messageText);
+        }
+        
+        if (photos.length > 0) {
+            for (let i = 0; i < photos.length; i++) {
+                formData.append('photos', photos[i]);
+            }
+        }
+        
+        if (!messageText.trim() && photos.length === 0) {
+            return;
+        }
+        
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.reset();
+                const previewContainer = document.getElementById('imagePreviewContainer');
+                previewContainer.innerHTML = '';
+                previewContainer.classList.remove('has-images');
+                window.location.reload();
+            } else {
+                alert(data.error || 'Failed to send message');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to send message');
+        });
+    });
+
+    function sendPhotosWithMessage() {
+        const formData = new FormData();
+        const messageText = document.getElementById('modalMessageText').value;
+        const photos = document.getElementById('messagePhotos').files;
+        
+        if (messageText.trim()) {
+            formData.append('content', messageText);
+        }
+        
+        if (photos.length > 0) {
+            for (let i = 0; i < photos.length; i++) {
+                formData.append('photos', photos[i]);
+            }
+        }
+        
+        fetch(document.getElementById('messageForm').action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reset form
+                bootstrap.Modal.getInstance(document.getElementById('photoUploadModal')).hide();
+                document.getElementById('messageForm').reset();
+                document.getElementById('modalImagePreviewContainer').innerHTML = '';
+                document.getElementById('modalMessageText').value = '';
+                // Reload the page to show new message
+                window.location.reload();
+            } else {
+                alert(data.error || 'Failed to send message');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to send message');
+        });
+    }
+</script>
+{% endblock %} 

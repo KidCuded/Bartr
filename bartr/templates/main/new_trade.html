@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}New Trade{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Item they want -->
+        <div class="col-md-6">
+                <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Item You Want</h5>
+                </div>
+                    <div class="card-body">
+                    <div class="d-flex align-items-start">
+                            {% if item.photos %}
+                                <img src="{{ url_for('static', filename='uploads/items/' + item.id|string + '/' + item.photos[0].photo_path) }}"
+                                     class="me-3" style="width: 100px; height: 100px; object-fit: cover;"
+                                     alt="{{ item.name }}">
+                        {% else %}
+                            <div class="bg-secondary d-flex align-items-center justify-content-center me-3"
+                                 style="width: 100px; height: 100px;">
+                                <i class="fas fa-image fa-2x text-white"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ item.name }}</h5>
+                            {% if item.estimated_value %}
+                                <p class="text-black fw-bold mb-1" style="font-size: 0.875rem;">RM {{ "%.2f"|format(item.estimated_value) }}</p>
+                            {% endif %}
+                            <p class="text-muted mb-1" style="font-size: 0.875rem;">{{ item.condition|replace('_', ' ')|title }}</p>
+                            <p class="text-muted mb-1" style="font-size: 0.875rem;">{{ item.owner.city }}, {{ item.owner.region }}</p>
+                        </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- Your items to offer -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Your Items to Offer</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="tradeForm">
+                    {{ form.hidden_tag() }}
+                        <!-- Hidden select field for form submission -->
+                        {{ form.offered_items(style="display: none;") }}
+                    <div class="mb-3">
+                            <label class="form-label">Select Items to Offer</label>
+                            <div class="list-group">
+                                {% for value, label in form.offered_items.choices %}
+                                    {% set item_obj = current_user.items|selectattr('id', 'equalto', value)|first %}
+                                    <label class="list-group-item">
+                                        <div class="d-flex align-items-center">
+                                            {% if item_obj.photos %}
+                                                <img src="{{ url_for('static', filename='uploads/items/' + item_obj.id|string + '/' + item_obj.photos[0].photo_path) }}"
+                                                     style="width: 50px; height: 50px; object-fit: cover;"
+                                                     class="me-3">
+                                            {% endif %}
+                                            <div class="flex-grow-1">
+                                                <div>{{ label }}</div>
+                                                {% if item_obj.estimated_value %}
+                                                    <small class="text-black fw-bold">RM {{ "%.2f"|format(item_obj.estimated_value) }}</small>
+                                                {% endif %}
+                                            </div>
+                                            <input class="form-check-input item-checkbox" type="checkbox" 
+                                                   value="{{ value }}"
+                                                   {% if value|string in form.offered_items.data|map('string')|list %}checked{% endif %}>
+                                        </div>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.message.label(class="form-label") }}
+                        {{ form.message(class="form-control", rows="3", placeholder="Add a message to explain your trade offer...") }}
+                    </div>
+
+                    <!-- Trade Fairness Preview -->
+                    <div class="mb-3" id="fairnessPreview" style="display: none;">
+                        <div class="alert" style="background-color: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                            <h6 class="alert-heading"><i class="fas fa-balance-scale"></i> Trade Fairness</h6>
+                            <p class="mb-2">This trade appears to be <span id="fairnessText" class="fw-bold"></span> based on estimated values:</p>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">They're offering:</small>
+                                    <div id="requestedValue" class="fw-bold text-success"></div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">You're offering:</small>
+                                    <div id="offeredValue" class="fw-bold text-success"></div>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">
+                                <strong>How fairness is calculated:</strong> We compare the total estimated values of items being traded. 
+                                A fair trade typically has similar values (70%+ match). Remember that condition, rarity, and personal value matter too!
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        {{ form.submit(class="btn btn-primary btn-sm") }}
+                        <a href="{{ url_for('main.item', item_id=item.id) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('tradeForm');
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    const offeredItemsSelect = form.querySelector('select[name="offered_items"]');
+    
+    // Item values for fairness calculation
+    const itemValues = {
+        {% for value, label in form.offered_items.choices %}
+            {% set item_obj = current_user.items|selectattr('id', 'equalto', value)|first %}
+            {{ value }}: {{ item_obj.estimated_value or 0 }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    const requestedItemValue = {{ item.estimated_value or 0 }};
+    
+    function updateFormValues() {
+        // Clear all options first
+        while (offeredItemsSelect.firstChild) {
+            offeredItemsSelect.removeChild(offeredItemsSelect.firstChild);
+        }
+        
+        // Calculate total offered value
+        let totalOfferedValue = 0;
+        
+        // Add new options for checked items
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const option = document.createElement('option');
+                option.value = checkbox.value;
+                option.selected = true;
+                offeredItemsSelect.appendChild(option);
+                
+                // Add to total value
+                totalOfferedValue += itemValues[checkbox.value] || 0;
+            }
+        });
+        
+        // Update fairness preview
+        updateFairnessPreview(totalOfferedValue);
+    }
+    
+    function updateFairnessPreview(offeredValue) {
+        const preview = document.getElementById('fairnessPreview');
+        const fairnessText = document.getElementById('fairnessText');
+        const requestedValueEl = document.getElementById('requestedValue');
+        const offeredValueEl = document.getElementById('offeredValue');
+        
+        if (offeredValue > 0 && requestedItemValue > 0) {
+            // Calculate fairness score
+            const ratio = Math.min(requestedItemValue, offeredValue) / Math.max(requestedItemValue, offeredValue);
+            const score = Math.round(ratio * 100);
+            
+            // Determine fairness text and color
+            let fairnessLabel, colorClass;
+            if (score >= 85) {
+                fairnessLabel = 'Very Fair';
+                colorClass = 'text-success';
+            } else if (score >= 70) {
+                fairnessLabel = 'Fair';
+                colorClass = 'text-info';
+            } else if (score >= 50) {
+                fairnessLabel = 'Somewhat Fair';
+                colorClass = 'text-warning';
+            } else {
+                // Determine if unfair to you or them
+                if (requestedItemValue > offeredValue) {
+                    fairnessLabel = 'Unfair to them';
+                } else {
+                    fairnessLabel = 'Unfair to you';
+                }
+                colorClass = 'text-danger';
+            }
+            
+            // Update the display
+            fairnessText.textContent = fairnessLabel + ` (${score}%)`;
+            fairnessText.className = `fw-bold ${colorClass}`;
+            requestedValueEl.textContent = `RM ${requestedItemValue.toFixed(2)}`;
+            offeredValueEl.textContent = `RM ${offeredValue.toFixed(2)}`;
+            
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+    
+    // Add change event listeners to checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFormValues);
+    });
+    
+    // Initialize the form values
+    updateFormValues();
+    
+    // Ensure form values are updated before submission
+    form.addEventListener('submit', function(e) {
+        updateFormValues();
+    });
+});
+</script>
+{% endblock %} 

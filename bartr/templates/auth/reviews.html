@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }} - Reviews{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="reviews-container">
+                <div class="reviews-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="reviews-title">Reviews for {{ user.username }}</h2>
+                            <p class="reviews-subtitle">
+                                {% if review_count > 0 %}
+                                    {{ review_count }} review{{ 's' if review_count != 1 else '' }} 
+                                    {% if avg_rating > 0 %}
+                                        • {{ "%.1f"|format(avg_rating) }} average rating
+                                    {% endif %}
+                                {% else %}
+                                    No reviews yet
+                                {% endif %}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('auth.profile', user_id=user.id) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Profile
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="reviews-body">
+                    {% if reviews %}
+                        {% for review in reviews %}
+                            <div class="review-card">
+                                <!-- Reviewer Info and Rating -->
+                                <div class="review-header">
+                                    <a href="{{ url_for('auth.profile', user_id=review.reviewer.id) }}" class="reviewer-info">
+                                        {% if review.reviewer.profile_photo %}
+                                            <img src="{{ url_for('static', filename='uploads/profile_photos/' + review.reviewer.profile_photo) }}"
+                                                 class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;"
+                                                 alt="{{ review.reviewer.username }}">
+                                        {% else %}
+                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2"
+                                                 style="width: 32px; height: 32px;">
+                                                <i class="fas fa-user text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <div class="small">
+                                                <div class="fw-bold text-dark mb-0">{{ review.reviewer.name }}</div>
+                                                <small class="text-muted">{{ review.created_at.strftime('%d %b %Y') }}</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <!-- Rating Stars -->
+                                <div class="review-stars">
+                                    {% for _ in range(review.rating) %}
+                                        <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                    {% for _ in range(5 - review.rating) %}
+                                        <i class="far fa-star"></i>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Review Comment -->
+                                <div class="review-content">
+                                    <p class="mb-0">{{ review.comment }}</p>
+                                </div>
+
+                                <!-- Review Photos -->
+                                {% if review.photos %}
+                                    <div class="review-photos">
+                                        {% for photo in review.photos %}
+                                            <img src="{{ url_for('static', filename='uploads/reviews/' + review.id|string + '/' + photo.photo_path) }}"
+                                                 class="review-photo"
+                                                 alt="Review photo">
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+
+                                <!-- Trade Item Info - Made smaller -->
+                                <div class="reviewed-item">
+                                    <div class="d-flex align-items-start">
+                                        {% if review.trade.requested_item.photos %}
+                                            <div class="item-image-container">
+                                                <img src="{{ url_for('static', filename='uploads/items/' + review.trade.requested_item.id|string + '/' + review.trade.requested_item.photos[0].photo_path) }}"
+                                                     alt="{{ review.trade.requested_item.name }}">
+                                            </div>
+                                        {% endif %}
+                                        <div class="ms-2">
+                                            <p class="item-name-small">{{ review.trade.requested_item.name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="far fa-star fa-4x text-muted mb-3"></i>
+                            <h3>No reviews yet</h3>
+                            <p class="text-muted">Reviews from trades will appear here</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Reviews page styling */
+.reviews-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin: 2rem 0;
+}
+
+.reviews-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem 2.5rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.reviews-title {
+    color: #2c3e50;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+}
+
+.reviews-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+.reviews-body {
+    padding: 2rem;
+}
+
+.review-card {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.5rem 0;
+    margin-bottom: 1rem;
+}
+
+.review-card:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.review-header {
+    margin-bottom: 1rem;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+}
+
+.reviewer-info:hover {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.review-stars {
+    margin-bottom: 1rem;
+}
+
+.review-stars i {
+    color: var(--primary-color);
+    margin-right: 0.25rem;
+}
+
+.review-content {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.review-photos {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.review-photo {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.reviewed-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.item-image-container {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.item-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-name-small {
+    color: #6c757d;
+    font-size: 0.85rem;
+    font-weight: normal;
+    margin: 0;
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .reviews-header {
+        padding: 1.5rem 1.5rem 1rem;
+    }
+    
+    .reviews-body {
+        padding: 1.5rem;
+    }
+    
+    .reviews-title {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

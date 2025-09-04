@@ -1,0 +1,892 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <!-- Search and Filter Bar -->
+            <div class="search-container mb-4">
+                <form action="{{ url_for('main.search') }}" method="get" class="search-form" id="searchForm">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon-left"></i>
+                        <input type="text" name="q" class="search-input" placeholder="What are you looking for?" value="{{ request.args.get('q', '') }}">
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    
+                    <button type="button" class="filter-toggle-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Filters</span>
+                    </button>
+                    
+                    <!-- Sort Dropdown -->
+                    <div class="dropdown">
+                        <button class="sort-toggle-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-sort"></i>
+                            <span>Sort</span>
+                        </button>
+                        <ul class="dropdown-menu sort-dropdown">
+                            <li><a class="dropdown-item {% if request.args.get('sort') == 'newest' or not request.args.get('sort') %}active{% endif %}" href="#" onclick="applySorting('newest')">Newest First</a></li>
+                            <li><a class="dropdown-item {% if request.args.get('sort') == 'oldest' %}active{% endif %}" href="#" onclick="applySorting('oldest')">Oldest First</a></li>
+                            <li><a class="dropdown-item {% if request.args.get('sort') == 'price_low' %}active{% endif %}" href="#" onclick="applySorting('price_low')">Price: Low to High</a></li>
+                            <li><a class="dropdown-item {% if request.args.get('sort') == 'price_high' %}active{% endif %}" href="#" onclick="applySorting('price_high')">Price: High to Low</a></li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Filter Modal -->
+            <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content filter-modal">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="filterModalLabel">Filter Results</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="filterForm">
+                                <div class="filter-grid">
+                                    <!-- Category Filter -->
+                                    <div class="filter-group">
+                                        <label class="filter-label">Category</label>
+                                        <select name="category" class="filter-select">
+                                            <option value="">All Categories</option>
+                                            {% for category in categories %}
+                                                <option value="{{ category.id }}" {% if category.id == current_category %}selected{% endif %}>
+                                                    {{ category.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <!-- Condition Filter -->
+                                    <div class="filter-group">
+                                        <label class="filter-label">Condition</label>
+                                        <select name="condition" class="filter-select">
+                                            <option value="">All Conditions</option>
+                                            <option value="brand_new" {% if current_condition == 'brand_new' %}selected{% endif %}>Brand New</option>
+                                            <option value="like_new" {% if current_condition == 'like_new' %}selected{% endif %}>Like New</option>
+                                            <option value="lightly_used" {% if current_condition == 'lightly_used' %}selected{% endif %}>Lightly Used</option>
+                                            <option value="well_used" {% if current_condition == 'well_used' %}selected{% endif %}>Well Used</option>
+                                            <option value="heavily_used" {% if current_condition == 'heavily_used' %}selected{% endif %}>Heavily Used</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- State Filter -->
+                                    <div class="filter-group">
+                                        <label class="filter-label">State</label>
+                                        <select name="state" class="filter-select" id="stateSelect">
+                                            <option value="">All States</option>
+                                            {% for state in states %}
+                                                <option value="{{ state }}" {% if state == current_state %}selected{% endif %}>
+                                                    {{ state }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <!-- City Filter -->
+                                    <div class="filter-group">
+                                        <label class="filter-label">City</label>
+                                        <select name="city" class="filter-select" id="citySelect" {% if not current_state %}disabled{% endif %}>
+                                            <option value="">All Cities</option>
+                                            {% for city in cities %}
+                                                <option value="{{ city }}" {% if city == current_city %}selected{% endif %}>
+                                                    {{ city }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <!-- Price Range Filter -->
+                                    <div class="filter-group">
+                                        <label class="filter-label">Price Range (RM)</label>
+                                        <div class="price-range-inputs">
+                                            <input type="number" name="min_price" class="filter-input" placeholder="Min" min="0" step="0.01" value="{{ request.args.get('min_price', '') }}">
+                                            <span class="price-separator">to</span>
+                                            <input type="number" name="max_price" class="filter-input" placeholder="Max" min="0" step="0.01" value="{{ request.args.get('max_price', '') }}">
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">Clear All</button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div class="d-flex justify-content-between align-items-center my-4">
+                {% if query %}
+                    <h5 class="mb-0">Search results for "{{ query }}"</h5>
+                {% endif %}
+                <p class="text-muted mb-0">{{ items.total }} items found</p>
+            </div>
+
+            <!-- Results -->
+            <div class="row mt-4">
+                <div class="col-12">
+
+                    {% if items.items %}
+                        <div class="row g-4">
+                            {% for item in items.items %}
+                                <div class="col-md-3">
+                                <div class="card h-100 item-card">
+                                        <div class="card-header p-2 border-0">
+                                            <div class="d-flex align-items-center ps-2">
+                                                <a href="{{ url_for('auth.profile', user_id=item.owner.id) }}" class="text-decoration-none d-flex align-items-center">
+                                                    {% if item.owner.profile_photo %}
+                                                        <img src="{{ url_for('static', filename='uploads/profile_photos/' + item.owner.profile_photo) }}"
+                                                             class="rounded-circle me-2" style="width: 36px; height: 36px; object-fit: cover;"
+                                                             alt="{{ item.owner.username }}">
+                                                    {% else %}
+                                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2"
+                                                             style="width: 36px; height: 36px;">
+                                                            <i class="fas fa-user text-white"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div class="small">
+                                                        <div class="text-dark mb-0" style="font-weight: 500;">{{ item.owner.username }}</div>
+                                                        <div class="text-muted" style="font-size: 0.75rem;">{{ item.created_at.strftime('%d %b %Y') }}</div>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <a href="{{ url_for('main.item', item_id=item.id) }}" class="text-decoration-none">
+                                            <div class="square-img-container">
+                                        {% if item.photos %}
+                                            <img src="{{ url_for('static', filename='uploads/items/' + item.id|string + '/' + item.photos[0].photo_path) }}"
+                                                     class="card-img-top" alt="{{ item.name }}">
+                                        {% else %}
+                                                    <div class="bg-secondary d-flex align-items-center justify-content-center h-100">
+                                                    <i class="fas fa-image fa-3x text-white"></i>
+                                                </div>
+                                        {% endif %}
+                                            </div>
+                                        </a>
+                                        <div class="card-body d-flex flex-column">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <a href="{{ url_for('main.item', item_id=item.id) }}" class="text-decoration-none">
+                                                        <h5 class="card-title text-dark mb-0">{{ item.name }}</h5>
+                                                    </a>
+                                                    {% if item.estimated_value %}
+                                                    <a href="{{ url_for('main.item', item_id=item.id) }}" class="text-decoration-none">
+                                                        <p class="card-text mb-0 mt-1">
+                                                            <small class="text-dark fw-bold">
+                                                                RM {{ "%.2f"|format(item.estimated_value) }}
+                                                            </small>
+                                                        </p>
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                                {% if current_user.is_authenticated and current_user.id != item.user_id %}
+                                                    <button class="btn favorite-btn p-0" 
+                                                            onclick="toggleFavorite('{{ item.id }}', this)" 
+                                                            data-item-id="{{ item.id }}"
+                                                            data-favorited="{{ 'true' if item.favorites|selectattr('user_id', 'equalto', current_user.id)|list|length > 0 else 'false' }}">
+                                                        <i class="fa-heart {% if item.favorites|selectattr('user_id', 'equalto', current_user.id)|list|length > 0 %}fas text-danger{% else %}far{% endif %}"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                            <a href="{{ url_for('main.item', item_id=item.id) }}" class="text-decoration-none">
+                                                <p class="card-text text-muted mb-1">
+                                                    <small>{{ item.condition.replace('_', ' ')|title }}</small>
+                                                </p>
+                                            </a>
+
+                                            <div class="mt-auto">
+                                                <p class="card-text text-muted mb-0">
+                                            <small>
+                                                <i class="fas fa-map-marker-alt"></i> {{ item.owner.city }}, {{ item.owner.region }}
+                                            </small>
+                                        </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                        <!-- Pagination -->
+                        {% if items.pages > 1 %}
+                            <nav aria-label="Page navigation" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item {% if not items.has_prev %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('main.search', page=items.prev_num if items.has_prev else 1, q=query, category=current_category, state=current_state) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    
+                                    {% for page_num in items.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                                        {% if page_num %}
+                                            <li class="page-item {% if page_num == items.page %}active{% endif %}">
+                                                <a class="page-link" href="{{ url_for('main.search', page=page_num, q=query, category=current_category, state=current_state) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    <li class="page-item {% if not items.has_next %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('main.search', page=items.next_num if items.has_next else items.pages, q=query, category=current_category, state=current_state) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                        <h3>No items found</h3>
+                        <p class="text-muted">Try adjusting your search criteria</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Search Bar Styles */
+.search-container {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 2rem 0;
+}
+
+.search-form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 2px solid var(--border-light);
+    border-radius: 50px;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+    transition: all 0.3s ease;
+    height: 50px;
+}
+
+.search-input-wrapper:focus-within {
+    border-color: var(--primary-color);
+}
+
+.search-icon-left {
+    color: var(--text-muted);
+    margin-right: 0.75rem;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 0.95rem;
+    background: transparent;
+    color: var(--text-dark);
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-btn {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.search-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.filter-toggle-btn {
+    background: white;
+    border: 2px solid var(--border-light);
+    color: var(--text-dark);
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    height: 50px;
+}
+
+.filter-toggle-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.sort-toggle-btn {
+    background: white;
+    border: 2px solid var(--border-light);
+    color: var(--text-dark);
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    height: 50px;
+}
+
+.sort-toggle-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.sort-dropdown .dropdown-item.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Filter Modal Styles */
+.filter-modal .modal-header {
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-light);
+    border-radius: 16px 16px 0 0;
+}
+
+.filter-modal .modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+
+.filter-modal .modal-title {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-label {
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.filter-select {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    background: white;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+    height: 45px;
+}
+
+.filter-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(243, 58, 106, 0.15);
+    outline: none;
+}
+
+.filter-modal .modal-footer {
+    background: var(--bg-light);
+    border-top: 1px solid var(--border-light);
+    border-radius: 0 0 16px 16px;
+}
+
+/* Card Styles */
+.square-img-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
+    overflow: hidden;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.square-img-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: none;
+    padding: 1rem 1rem 0.5rem;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    color: var(--text-dark);
+}
+
+.favorite-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    transition: transform 0.2s;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.favorite-btn:hover {
+    transform: scale(1.1);
+}
+
+.favorite-btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.search-icon {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.filter-group {
+    flex: 0 0 auto;
+}
+
+.favorite-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    transition: color 0.2s;
+}
+
+.favorite-btn:hover {
+    color: var(--primary-color);
+}
+
+.favorite-btn .fas.fa-heart {
+    color: var(--primary-color);
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.card-title {
+    font-size: 0.95rem;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.input-group-text {
+    color: #F33A6A;
+}
+
+.search-icon:hover {
+    background-color: #d62e59;
+}
+
+.search-icon .fas.fa-search {
+    color: #ffffff;
+}
+
+.input-group-text.search-icon i {
+    color: #ffffff;
+}
+
+.search-icon i.fas,
+.search-icon i.fa-search {
+    color: #ffffff;
+}
+
+select option:first-child {
+    color: #6c757d;
+}
+
+.input-group {
+    flex: 1;
+}
+
+.form-select {
+    min-width: 150px;
+}
+
+.pagination {
+    gap: 0.25rem;
+}
+
+.page-item {
+    display: flex;
+}
+
+.page-link {
+    color: #6c757d;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0.25rem;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.page-item:not(.active) .page-link {
+    background-color: transparent;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    opacity: 0.5;
+    display: flex;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(243, 58, 106, 0.25);
+}
+
+.search-input-group .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(243, 58, 106, 0.25);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: none;
+}
+
+.search-input-group {
+    flex: 2;
+    max-width: 50%;
+}
+
+.filter-group {
+    flex: 0.5;
+    min-width: 150px;
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+}
+
+.form-control,
+.form-select {
+    color: #212529;
+}
+
+.form-select option {
+    color: #212529;
+}
+
+.form-select option:first-child {
+    color: #6c757d;
+}
+
+.input-group-text i.fas {
+    color: var(--primary-color);
+}
+
+.badge {
+    background-color: #F33A6A;
+}
+
+.filter-group {
+    flex: 0.5;
+    min-width: 150px;
+}
+
+.search-input-group {
+    flex: 2;
+    max-width: 50%;
+}
+
+.card-title,
+.form-select,
+.form-control {
+    color: #212529;
+}
+
+.form-select option:checked {
+    color: #212529;
+    background-color: #f8f9fa;
+}
+
+select.form-select {
+    color: #212529;
+}
+
+select.form-select option[value=""] {
+    color: #6c757d;
+}
+
+.search-input-group {
+    max-width: 500px;
+}
+
+.search-icon {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.btn-primary {
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+}
+
+.price-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    height: 45px;
+    min-width: 218px;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.price-separator {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.item-card {
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 16px;
+    box-shadow: 
+        0 2px 8px rgba(0,0,0,0.1),
+        0 0 0 1px rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    background: white;
+}
+
+.item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 8px 24px rgba(0,0,0,0.15),
+        0 0 0 1px rgba(255,255,255,0.1);
+    border-color: rgba(243, 58, 106, 0.2);
+}
+
+.item-card .card-header {
+    background: rgba(248, 249, 250, 0.8);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.item-card .card-body {
+    padding: 1rem;
+    background: white;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // State and city dependency
+    const stateSelect = document.getElementById('stateSelect');
+    const citySelect = document.getElementById('citySelect');
+
+    stateSelect.addEventListener('change', function() {
+        const state = this.value;
+        citySelect.disabled = !state;
+        citySelect.innerHTML = '<option value="">All Cities</option>';
+        
+        if (state) {
+            fetch(`/api/cities/${state}`)
+                .then(response => response.json())
+                .then(cities => {
+                    cities.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city;
+                        option.textContent = city;
+                        citySelect.appendChild(option);
+                    });
+                });
+        }
+    });
+});
+
+function clearFilters() {
+    const form = document.getElementById('filterForm');
+    form.reset();
+    
+    // Get the current URL parameters
+    const params = new URLSearchParams(window.location.search);
+    
+    // Clear all filter parameters
+    params.delete('category');
+    params.delete('condition');
+    params.delete('state');
+    params.delete('city');
+    
+    // Keep the search query if it exists
+    const searchQuery = params.get('q');
+    
+    // Create new URL with only search query (if it exists)
+    let newUrl = window.location.pathname;
+    if (searchQuery) {
+        newUrl += `?q=${searchQuery}`;
+    }
+    
+    // Redirect to the new URL
+    window.location.href = newUrl;
+}
+
+function applyFilters() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+    
+    // Remove empty parameters
+    for (const [key, value] of params.entries()) {
+        if (!value) params.delete(key);
+    }
+    
+    // Get the current search query if it exists
+    const searchQuery = new URLSearchParams(window.location.search).get('q');
+    if (searchQuery) params.set('q', searchQuery);
+    
+    // Redirect to the filtered URL
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+}
+
+function toggleFavorite(itemId, button) {
+    fetch(`/favorite/${itemId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const icon = button.querySelector('i');
+        if (data.status === 'added') {
+            icon.classList.remove('far');
+            icon.classList.add('fas', 'text-danger');
+            button.dataset.favorited = 'true';
+        } else {
+            icon.classList.remove('fas', 'text-danger');
+            icon.classList.add('far');
+            button.dataset.favorited = 'false';
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function applySorting(sortValue) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('sort', sortValue);
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block styles %}
+<style>
+/* Add item card styling */
+.add-item-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin: 2rem 0;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem 2.5rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.page-title {
+    color: #2c3e50;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+}
+
+.page-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+.card-body {
+    padding: 2.5rem;
+}
+
+/* Form styling */
+.item-form {
+    max-width: 100%;
+}
+
+.form-section {
+    margin-bottom: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-row .form-group {
+    margin-bottom: 0;
+}
+
+.form-label {
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    display: block;
+}
+
+.form-control, .form-select {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: white;
+    color: #374151;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(243, 58, 106, 0.15);
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    flex: 1;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.btn-primary.cancel-btn {
+    background: transparent;
+    color: #6c757d;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.btn-primary.cancel-btn:hover {
+    background: #6c757d;
+    color: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .card-header {
+        padding: 1.5rem 1.5rem 1rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* Legacy styles for backward compatibility */
+.password-field-wrapper {
+    position: relative;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+}
+
+.password-toggle-btn:hover {
+    color: #000;
+}
+
+.password-toggle-btn:focus {
+    outline: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="add-item-card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="page-title">Edit Profile</h2>
+                            <p class="page-subtitle">Update your personal information</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+
+                    <form method="POST" enctype="multipart/form-data" class="item-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-section">
+                            <h4 class="section-title">Profile Photo</h4>
+                            
+                            <div class="form-group">
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        {% if current_user.profile_photo %}
+                                            <img src="{{ url_for('static', filename='uploads/profile_photos/' + current_user.profile_photo) }}"
+                                                 class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;"
+                                                 alt="Profile Photo" id="profilePhotoPreview">
+                                        {% else %}
+                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                                                 style="width: 100px; height: 100px;" id="defaultProfilePhoto">
+                                                <i class="fas fa-user fa-3x text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ms-3">
+                                        <label for="profile_photo" class="btn btn-outline-secondary btn-sm" style="color: #333;">
+                                            Upload a photo
+                                        </label>
+                                        {{ form.profile_photo(class="d-none", onchange="previewImage(this)") }}
+                                        <p class="text-muted mt-2 mb-0" style="font-size: 0.9rem;">
+                                            Recommended: Square image, at least 400x400 pixels.<br>
+                                            Supported formats: JPG, JPEG, PNG
+                                        </p>
+                                    </div>
+                                </div>
+                                {% for error in form.profile_photo.errors %}
+                                    <div class="text-danger mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4 class="section-title">Personal Information</h4>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    {{ form.username.label(class="form-label") }}
+                                    {{ form.username(class="form-control", placeholder="Enter your username") }}
+                                    {% for error in form.username.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="form-group">
+                                    {{ form.name.label(class="form-label") }}
+                                    {{ form.name(class="form-control", placeholder="Enter your full name") }}
+                                    {% for error in form.name.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    {{ form.email.label(class="form-label") }}
+                                    {{ form.email(class="form-control", placeholder="Enter your email") }}
+                                    {% for error in form.email.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="form-group">
+                                    {{ form.mobile_number.label(class="form-label") }}
+                                    {{ form.mobile_number(class="form-control", placeholder="Enter your mobile number") }}
+                                    {% for error in form.mobile_number.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4 class="section-title">Location</h4>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    {{ form.region.label(class="form-label") }}
+                                    {{ form.region(class="form-select") }}
+                                    {% for error in form.region.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="form-group">
+                                    {{ form.city.label(class="form-label") }}
+                                    {{ form.city(class="form-select") }}
+                                    {% for error in form.city.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            {{ form.submit(class="btn btn-primary") }}
+                            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewImage(input) {
+    const defaultPhoto = document.getElementById('defaultProfilePhoto');
+    let preview = document.getElementById('profilePhotoPreview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            if (!preview) {
+                // Create new preview image if it doesn't exist
+                preview = document.createElement('img');
+                preview.id = 'profilePhotoPreview';
+                preview.className = 'rounded-circle';
+                preview.style.width = '120px';
+                preview.style.height = '120px';
+                preview.style.objectFit = 'cover';
+                preview.alt = 'Profile Photo';
+                
+                // Replace defaultPhoto with preview
+                if (defaultPhoto) {
+                    defaultPhoto.parentNode.replaceChild(preview, defaultPhoto);
+                }
+            }
+            preview.src = e.target.result;
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function togglePasswordVisibility(button) {
+    const passwordField = button.parentElement.querySelector('input');
+    const icon = button.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle state/city dropdown dependency
+    const regionSelect = document.getElementById('region');
+    const citySelect = document.getElementById('city');
+    const currentCity = citySelect.value;
+
+    regionSelect.addEventListener('change', function() {
+        const state = this.value;
+        citySelect.innerHTML = '<option value="">Select City</option>';
+        citySelect.disabled = true;
+
+        if (state) {
+            fetch(`/auth/get_cities/${state}`)
+                .then(response => response.json())
+                .then(cities => {
+                    cities.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city.id;
+                        option.textContent = city.name;
+                        citySelect.appendChild(option);
+                    });
+                    citySelect.disabled = false;
+                    
+                    // Try to reselect the previous city if it exists in the new list
+                    if (currentCity) {
+                        const cityOption = Array.from(citySelect.options)
+                            .find(option => option.value === currentCity);
+                        if (cityOption) {
+                            citySelect.value = currentCity;
+                        }
+                    }
+                });
+        }
+    });
+});
+</script>
+{% endblock %} 

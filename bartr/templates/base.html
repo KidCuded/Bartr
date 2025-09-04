@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - Bartr</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #F33A6A;
+            --primary-light: #ff4a75;
+            --primary-dark: #d62e59;
+            --text-dark: #1a1a1a;
+            --text-muted: #6c757d;
+            --border-light: #e9ecef;
+            --bg-light: #f8f9fa;
+            --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            --border-radius: 8px;
+        }
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1200px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            background: white;
+        }
+        
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid var(--border-light);
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #d62e59;
+            border-color: #d62e59;
+        }
+        
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(243, 58, 106, 0.1);
+        }
+        
+        .nav-link {
+            color: var(--text-dark) !important;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 1rem 0.75rem !important;
+            margin: 0 0.1rem;
+            transition: all 0.2s ease;
+            position: relative;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary-color) !important;
+            border-bottom-color: var(--primary-color);
+        }
+
+        .nav-link.active {
+            color: var(--primary-color) !important;
+            border-bottom-color: var(--primary-color);
+        }
+
+        .navbar-brand {
+            color: var(--primary-color) !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-right: 1.5rem;
+            text-decoration: none;
+        }
+
+        .navbar-brand:hover {
+            color: var(--primary-color) !important;
+        }
+
+        .btn-add-item {
+            background-color: var(--primary-color);
+            border: none;
+            color: white !important;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
+        }
+
+        .btn-add-item:hover {
+            background-color: #d62e59;
+            color: white !important;
+        }
+
+        .profile-picture {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(243, 58, 106, 0.2);
+            transition: border-color 0.3s ease;
+        }
+
+        .profile-picture:hover {
+            border-color: var(--primary-color);
+        }
+
+        .default-profile {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(243, 58, 106, 0.2);
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .default-profile:hover {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .nav-profile-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.5rem 1rem !important;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-profile-link:hover {
+            background-color: rgba(243, 58, 106, 0.05);
+            transform: none;
+        }
+
+        /* Global styles for profile links */
+        .profile-link {
+            color: #212529;
+            text-decoration: none;
+        }
+
+        .profile-link:hover {
+            color: var(--primary-color);
+        }
+
+        .nav-item {
+            margin: 0 0.1rem;
+        }
+
+        /* Badge styling for notifications and messages */
+        .badge.rounded-pill {
+            background: var(--primary-color);
+            width: 18px;
+            height: 18px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50% !important;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 6px;
+            position: relative;
+            top: 0;
+            right: 0;
+        }
+
+        .nav-link {
+            position: relative;
+        }
+
+        /* Review star size in profile */
+        .review-stars i {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+
+        /* Pagination styling */
+        .pagination .page-link {
+            border-radius: 0 !important;
+            color: var(--primary-color);
+            padding: 0.5rem 0.75rem;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        /* Message image styling */
+        .message-image-container {
+            width: 200px;
+            height: 200px;
+            padding: 0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .message-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Profile review image size */
+        .review-photo {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin: 4px;
+        }
+
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-add-item {
+            font-weight: 600 !important;
+        }
+
+        .container {
+            max-width: 1300px !important;
+        }
+
+        .search-input-group {
+            width: 800px !important;
+            max-width: 100% !important;
+            flex: 1 !important;
+        }
+
+        .search-input-group input {
+            height: 45px;
+            font-size: 0.9rem;
+        }
+
+        .search-icon {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            min-width: 100px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            min-width: 120px;
+            font-size: 0.85rem;
+            height: 45px;
+            white-space: nowrap;
+        }
+
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            border: none !important;
+            font-size: 0.85rem;
+        }
+
+        .dropdown-divider {
+            display: none;
+        }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+        <div class="container">
+            {% if not current_user.is_authenticated or not current_user.is_admin %}
+                <a class="navbar-brand" href="{{ url_for('main.index') }}">Bartr</a>
+            {% else %}
+                <a class="navbar-brand" href="{{ url_for('admin.dashboard') }}">Bartr</a>
+            {% endif %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if not current_user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.my_trades') }}">My Trades</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.notifications') }}" id="notifications-link">
+                                    Notifications
+                                    {% if notification_count and notification_count > 0 %}
+                                        <span class="badge rounded-pill" id="notification-badge">{{ notification_count }}</span>
+                                    {% else %}
+                                        <span class="badge rounded-pill" id="notification-badge" style="display: none;">0</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.messages') }}">
+                                    Messages
+                                    {% if unread_count and unread_count > 0 %}
+                                        <span class="badge rounded-pill" id="unread-messages">{{ unread_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.favorites') }}">Favorites</a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.users') }}">Users</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.items') }}">Items</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.categories') }}">Categories</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.flags') }}">Flags</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.trades') }}">Trades</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.backups') }}">Backups</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                {% if current_user.profile_photo %}
+                                    <img src="{{ url_for('static', filename='uploads/profile_photos/' + current_user.profile_photo) }}"
+                                         class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;"
+                                         alt="{{ current_user.username }}">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2"
+                                         style="width: 32px; height: 32px;">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                {% endif %}
+                                <span>{{ current_user.username }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if current_user.is_admin %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.edit_profile') }}">Edit Profile</a></li>
+                                {% else %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.profile', user_id=current_user.id) }}">Profile</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">Change Password</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                            </ul>
+                        </li>
+                        {% if not current_user.is_admin %}
+                            <li class="nav-item">
+                                <a class="btn btn-add-item ms-3" href="{{ url_for('main.new_item') }}">Add Item</a>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-add-item ms-2" href="{{ url_for('auth.login', next=url_for('main.new_item')) }}">Add Item</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container flex-grow-1">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <main style="min-height: calc(100vh - 200px);">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block footer %}
+    <footer class="mt-5 py-4" style="background-color: #F33A6A; width: 100%;">
+        <div class="container-fluid px-4">
+            <div class="text-start">
+                <h5 class="mb-2" style="color: white;">Bartr</h5>
+                <p class="mb-0" style="color: white;">A platform for trading pre-owned items within your local community.</p>
+            </div>
+        </div>
+    </footer>
+    {% endblock %}
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Initialize Bootstrap components
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all modals
+            var modals = [].slice.call(document.querySelectorAll('.modal'));
+            modals.forEach(function(modal) {
+                new bootstrap.Modal(modal);
+            });
+
+            // Initialize all tooltips
+            var tooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltips.forEach(function(tooltip) {
+                new bootstrap.Tooltip(tooltip);
+            });
+
+            // Initialize all popovers
+            var popovers = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            popovers.forEach(function(popover) {
+                new bootstrap.Popover(popover);
+            });
+        });
+    </script>
+    
+    {% if current_user.is_authenticated %}
+        <script>
+            function updateUnreadCount() {
+                fetch('/get_unread_count')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.getElementById('unread-messages');
+                        if (badge) {
+                            if (!data.count || parseInt(data.count) === 0) {
+                                badge.style.display = 'none';
+                            } else {
+                            badge.textContent = data.count;
+                                badge.style.display = 'inline-flex';
+                            }
+                        }
+                    });
+            }
+
+            function updateNotificationCount() {
+                fetch('/get_notification_count')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.getElementById('notification-badge');
+                        if (badge) {
+                            if (!data.count || parseInt(data.count) === 0) {
+                                badge.style.display = 'none';
+                            } else {
+                            badge.textContent = data.count;
+                                badge.style.display = 'inline-flex';
+                            }
+                        }
+                    });
+            }
+
+            // Update unread counts every 30 seconds
+            setInterval(() => {
+                updateUnreadCount();
+                updateNotificationCount();
+            }, 30000);
+
+            // Initial update
+            updateUnreadCount();
+            updateNotificationCount();
+
+            // Handle notification click
+            const notificationsLink = document.getElementById('notifications-link');
+            if (notificationsLink) {
+                notificationsLink.addEventListener('click', function(e) {
+                    // Allow normal navigation to notifications page
+                    // Don't prevent default - let the link work normally
+                });
+            }
+        </script>
+    {% endif %}
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

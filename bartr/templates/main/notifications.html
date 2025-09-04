@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="modern-notifications-container">
+                <div class="notifications-header">
+                    <h4 class="notifications-title">Notifications</h4>
+                    <p class="notifications-subtitle">Stay updated with your trades and activities</p>
+                </div>
+                <div class="notifications-body">
+                    {% if notifications %}
+                        <div class="notification-list">
+                            {% for notification in notifications %}
+                                {% if notification.type == 'trade_proposal' %}
+                                    <a href="{{ url_for('main.my_trades', status='pending_approval') }}" class="notification-link">
+                                {% elif notification.type == 'trade_accepted' %}
+                                    <a href="{{ url_for('main.my_trades', status='accepted') }}" class="notification-link">
+                                {% elif notification.type == 'trade_rejected' %}
+                                    <a href="{{ url_for('main.my_trades', status='rejected') }}" class="notification-link">
+                                {% elif notification.type == 'trade_cancelled' %}
+                                    <a href="{{ url_for('main.my_trades', status='cancelled') }}" class="notification-link">
+                                {% elif notification.type == 'trade_completed' %}
+                                    <a href="{{ url_for('main.my_trades', status='completed') }}" class="notification-link">
+                                {% elif notification.type == 'trade_auto_completed' %}
+                                    <a href="{{ url_for('main.my_trades', status='completed') }}" class="notification-link">
+                                {% elif notification.type == 'trade_completion_reminder' %}
+                                    <a href="{{ url_for('main.my_trades', status='accepted') }}" class="notification-link">
+                                {% elif notification.type == 'rating_reminder' %}
+                                    <a href="{{ url_for('main.my_trades', status='completed') }}" class="notification-link">
+                                {% elif notification.type == 'flag' %}
+                                    <a href="{{ url_for('main.item', item_id=notification.item_id) }}" class="notification-link">
+                                {% else %}
+                                    <a href="#" class="notification-link">
+                                {% endif %}
+                                    <div class="modern-notification-item {% if not notification.is_read %}unread{% endif %}">
+                                        <div class="notification-indicator">
+                                            {% if notification.type == 'trade_proposal' %}
+                                                <div class="indicator-dot trade"></div>
+                                            {% elif notification.type == 'trade_accepted' %}
+                                                <div class="indicator-dot accepted"></div>
+                                            {% elif notification.type == 'trade_rejected' %}
+                                                <div class="indicator-dot rejected"></div>
+                                            {% elif notification.type == 'trade_cancelled' %}
+                                                <div class="indicator-dot cancelled"></div>
+                                            {% elif notification.type == 'trade_completed' %}
+                                                <div class="indicator-dot accepted"></div>
+                                            {% elif notification.type == 'trade_auto_completed' %}
+                                                <div class="indicator-dot accepted"></div>
+                                            {% elif notification.type == 'trade_completion_reminder' %}
+                                                <div class="indicator-dot trade"></div>
+                                            {% elif notification.type == 'rating_reminder' %}
+                                                <div class="indicator-dot accepted"></div>
+                                            {% elif notification.type == 'flag' %}
+                                                <div class="indicator-dot flag">
+                                                    <i class="fas fa-exclamation text-white" style="font-size: 8px;"></i>
+                                                </div>
+                                            {% else %}
+                                                <div class="indicator-dot default"></div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="notification-main">
+                                            <div class="notification-content">
+                                                <p class="notification-text">{{ notification.content }}</p>
+                                                <span class="notification-time">
+                                                    {{ notification.created_at|malaysia_time|format_date }}
+                                                </span>
+                                            </div>
+                                            {% if not notification.is_read %}
+                                                <div class="unread-badge"></div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-notifications">
+                            <div class="empty-icon">
+                                <i class="fas fa-bell-slash"></i>
+                            </div>
+                            <h5 class="empty-title">All caught up!</h5>
+                            <p class="empty-description">You have no new notifications</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Modern Notifications Container */
+.modern-notifications-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin: 2rem 0;
+}
+
+.notifications-header {
+    padding: 2rem 2rem 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    text-align: center;
+}
+
+.notifications-title {
+    color: #2c3e50;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.notifications-subtitle {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+.notifications-body {
+    padding: 0;
+}
+
+/* Notification List */
+.notification-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.notification-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.modern-notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.modern-notification-item:last-child {
+    border-bottom: none;
+}
+
+.modern-notification-item:hover {
+    background: rgba(243, 58, 106, 0.08);
+    transform: translateY(-1px);
+}
+
+
+.modern-notification-item.unread {
+    background: rgba(243, 58, 106, 0.04);
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Notification Indicator */
+.notification-indicator {
+    margin-right: 1rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+.indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.indicator-dot.trade {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+}
+
+.indicator-dot.accepted {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.indicator-dot.rejected {
+    background: linear-gradient(135deg, #dc3545, #bd2130);
+}
+
+.indicator-dot.cancelled {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+}
+
+.indicator-dot.flag {
+    background: linear-gradient(135deg, var(--primary-color), #d63384);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.indicator-dot.default {
+    background: linear-gradient(135deg, #6c757d, #495057);
+}
+
+/* Notification Content */
+.notification-main {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-text {
+    color: #2c3e50;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0 0 0.25rem 0;
+    font-weight: 500;
+}
+
+.notification-time {
+    color: #6c757d;
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+.unread-badge {
+    width: 8px;
+    height: 8px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    margin-left: 1rem;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-notifications {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    margin-bottom: 1.5rem;
+}
+
+.empty-icon i {
+    font-size: 4rem;
+    color: #dee2e6;
+}
+
+.empty-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.empty-description {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+/* Scrollbar Styling */
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+{% endblock %} 

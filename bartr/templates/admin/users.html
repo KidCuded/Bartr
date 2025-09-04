@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="admin-header">
+        <h1 class="admin-title">Manage Users</h1>
+        <p class="admin-subtitle">View and manage user accounts</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-value text-success">{{ active_users }}</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-value text-danger">{{ suspended_users }}</div>
+                <div class="stat-label">Suspended Users</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">User Management</h5>
+                
+                <!-- Filters and Search -->
+                <div class="admin-filters">
+                    <form method="GET" class="d-flex gap-2">
+                        <input type="text" name="search" class="form-control" placeholder="Search users..." value="{{ search }}">
+                        <select name="filter" class="form-select">
+                            <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Users</option>
+                            <option value="active" {% if filter_type == 'active' %}selected{% endif %}>Active</option>
+                            <option value="suspended" {% if filter_type == 'suspended' %}selected{% endif %}>Suspended</option>
+                            <option value="new" {% if filter_type == 'new' %}selected{% endif %}>New (7 days)</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary" title="Apply filters to user search results" data-bs-toggle="tooltip" data-bs-placement="top">Filter</button>
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary" title="Clear all filters and reset user search" data-bs-toggle="tooltip" data-bs-placement="top">Clear</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Joined</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users.items %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('auth.profile', user_id=user.id) }}" class="text-decoration-none">
+                                        {{ user.username }}
+                                    </a>
+                                </td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.name }}</td>
+                                <td>{{ user.city }}, {{ user.region }}</td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ 'Active' if user.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('admin.toggle_user_status', user_id=user.id) }}" 
+                                           class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}"
+                                           title="{{ 'Suspend' if user.is_active else 'Activate' }} user"
+                                           data-bs-toggle="tooltip" data-bs-placement="top"
+                                           style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas {% if user.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                        </a>
+                                        {% if user != current_user %}
+                                        <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete user permanently"
+                                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                                onclick="return confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')"
+                                                style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if users.pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item {% if not users.has_prev %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.users', page=users.prev_num if users.has_prev else 1, filter=filter_type, search=search) }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        {% for page_num in users.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                            {% if page_num %}
+                                <li class="page-item {% if page_num == users.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('admin.users', page=page_num, filter=filter_type, search=search) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <li class="page-item {% if not users.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.users', page=users.next_num if users.has_next else users.pages, filter=filter_type, search=search) }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.admin-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    padding: 2rem;
+    margin: -1rem -15px 2rem -15px;
+    border-radius: 0 0 16px 16px;
+    text-align: center;
+}
+
+.admin-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+}
+
+.admin-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+    color: white;
+}
+
+.admin-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.admin-filters {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.admin-filters .form-control,
+.admin-filters .form-select {
+    min-width: 150px;
+}
+
+.admin-filters .form-control {
+    min-width: 200px;
+}
+
+.admin-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.admin-card-header {
+    background: var(--bg-light);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.admin-card-body {
+    padding: 0;
+}
+
+.admin-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+}
+
+.admin-table thead th {
+    background: var(--bg-light);
+    border-bottom: 2px solid var(--border-light);
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    border: none;
+}
+
+.admin-table tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.admin-table tbody tr:hover {
+    background-color: var(--bg-light);
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.badge {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+.btn {
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary {
+    border-color: var(--border-light);
+    color: var(--text-dark);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--bg-light);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.pagination {
+    gap: 0.25rem;
+    margin: 2rem 0;
+}
+
+.page-item {
+    display: flex;
+}
+
+.page-link {
+    color: #6c757d;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0.25rem;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.page-item:not(.active) .page-link {
+    background-color: transparent;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    opacity: 0.5;
+    display: flex;
+}
+
+@media (max-width: 768px) {
+    .admin-header {
+        margin: -1rem -15px 1rem -15px;
+        padding: 1.5rem;
+    }
+    
+    .admin-title {
+        font-size: 1.5rem;
+    }
+    
+    .admin-controls {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %} 

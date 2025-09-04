@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}New Item{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="add-item-card">
+                <div class="card-header">
+                    <h2 class="page-title">Add New Item</h2>
+                    <p class="page-subtitle">Share something amazing with the community</p>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" action="" enctype="multipart/form-data" class="item-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-section">
+                            <h4 class="section-title">Basic Information</h4>
+                            
+                            <div class="form-group">
+                                {{ form.name.label(class="form-label") }}<span class="text-danger">*</span>
+                                {{ form.name(class="form-control", placeholder="What are you trading?", required=true) }}
+                                {% for error in form.name.errors %}
+                                    <div class="text-danger mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="form-group">
+                                {{ form.description.label(class="form-label") }}
+                                {{ form.description(class="form-control", rows="4", placeholder="Describe your item in detail...") }}
+                                {% for error in form.description.errors %}
+                                    <div class="text-danger mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    {{ form.category.label(class="form-label") }}<span class="text-danger">*</span>
+                                    {{ form.category(class="form-select", required=true) }}
+                                    {% for error in form.category.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="form-group">
+                                    {{ form.condition.label(class="form-label") }}<span class="text-danger">*</span>
+                                    {{ form.condition(class="form-select", required=true) }}
+                                    {% for error in form.condition.errors %}
+                                        <div class="text-danger mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                {{ form.estimated_value.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">RM</span>
+                                    {{ form.estimated_value(class="form-control", placeholder="0.00", step="0.01") }}
+                                </div>
+                                <small class="form-text text-muted">Optional: Help others assess trade fairness</small>
+                                {% for error in form.estimated_value.errors %}
+                                    <div class="text-danger mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4 class="section-title">Photos<span class="text-danger">*</span></h4>
+                            <p class="section-subtitle">Add photos to make your item stand out</p>
+                            
+                            <div class="photo-upload-area" id="dropZone">
+                                <input type="file" id="photoInput" name="photos" multiple accept="image/*" required class="d-none">
+                                <label for="photoInput" class="upload-label">
+                                    <i class="fas fa-camera upload-icon"></i>
+                                    <span class="upload-text">Click to add photos or drag & drop</span>
+                                    <span class="upload-subtext">JPG, PNG, JPEG supported • Drag to reorder</span>
+                                </label>
+                            </div>
+                            
+                            {% for error in form.photos.errors %}
+                                <div class="text-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                            
+                            <div id="photoPreview" class="photo-preview-grid"></div>
+                        </div>
+
+                        <div class="form-actions">
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1; background-color: rgba(255,255,255,0.8); border-radius: 50%;"></button>
+                <img src="" class="img-fluid" id="modalImage">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.add-item-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin: 2rem 0;
+}
+
+.add-item-card .card-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    border: none;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: white;
+}
+
+.page-subtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+}
+
+.item-form {
+    padding: 2rem;
+}
+
+.form-section {
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-control, .form-select {
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+    border-radius: var(--border-radius);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: none;
+    outline: none;
+}
+
+.photo-upload-area {
+    border: 2px dashed var(--border-light);
+    border-radius: var(--border-radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: var(--bg-light);
+}
+
+.photo-upload-area:hover {
+    border-color: var(--primary-color);
+    background: rgba(243, 58, 106, 0.05);
+}
+
+.upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    margin: 0;
+}
+
+.upload-icon {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.photo-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.photo-preview-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: var(--bg-light);
+    border: 2px solid var(--border-light);
+    cursor: grab;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.photo-preview-item:active {
+    cursor: grabbing;
+}
+
+.photo-preview-item.dragging {
+    transform: rotate(5deg) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.photo-preview-item.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(243, 58, 106, 0.1);
+}
+
+.upload-area-drag-over {
+    border-color: var(--primary-color);
+    background: rgba(243, 58, 106, 0.1);
+}
+
+.photo-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.photo-preview-item img:hover {
+    transform: scale(1.05);
+}
+
+.remove-photo-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.remove-photo-btn:hover {
+    background: var(--primary-color);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    flex: 1;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .item-form {
+        padding: 1.5rem;
+    }
+    
+    .add-item-card .card-header {
+        padding: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const photoInput = document.getElementById('photoInput');
+    const previewContainer = document.getElementById('photoPreview');
+    const dropZone = document.getElementById('dropZone');
+    let filesArray = [];
+
+    // File input change handler
+    if (photoInput) {
+        photoInput.addEventListener('change', function() {
+            filesArray = Array.from(this.files);
+            updatePreview();
+        });
+    }
+
+    // Drag and drop functionality for upload area
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('upload-area-drag-over'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('upload-area-drag-over'), false);
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        const imageFiles = droppedFiles.filter(file => file.type.startsWith('image/'));
+        filesArray = [...filesArray, ...imageFiles];
+        updateFileInput();
+        updatePreview();
+    });
+
+    function updatePreview() {
+        previewContainer.innerHTML = '';
+        
+        filesArray.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                const preview = document.createElement('div');
+                preview.className = 'photo-preview-item';
+                preview.draggable = true;
+                preview.dataset.index = index;
+                
+                reader.onload = e => {
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" onclick="openImageModal(this.src)" alt="Preview">
+                        <button type="button" class="remove-photo-btn" onclick="removePreview(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                };
+                
+                // Add drag event listeners for reordering
+                preview.addEventListener('dragstart', handleDragStart);
+                preview.addEventListener('dragover', handleDragOver);
+                preview.addEventListener('drop', handleDrop);
+                preview.addEventListener('dragend', handleDragEnd);
+                
+                reader.readAsDataURL(file);
+                previewContainer.appendChild(preview);
+            }
+        });
+    }
+
+    function updateFileInput() {
+        const dt = new DataTransfer();
+        filesArray.forEach(file => dt.items.add(file));
+        photoInput.files = dt.files;
+    }
+
+    let draggedElement = null;
+
+    function handleDragStart(e) {
+        draggedElement = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.outerHTML);
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+        return false;
+    }
+
+    function handleDrop(e) {
+        if (e.stopPropagation) e.stopPropagation();
+        
+        if (draggedElement !== this) {
+            const draggedIndex = parseInt(draggedElement.dataset.index);
+            const targetIndex = parseInt(this.dataset.index);
+            
+            // Reorder files array
+            const draggedFile = filesArray.splice(draggedIndex, 1)[0];
+            filesArray.splice(targetIndex, 0, draggedFile);
+            
+            updateFileInput();
+            updatePreview();
+        }
+        
+        this.classList.remove('drag-over');
+        return false;
+    }
+
+    function handleDragEnd() {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.photo-preview-item').forEach(item => {
+            item.classList.remove('drag-over');
+        });
+    }
+
+    // Function to remove preview
+    window.removePreview = function(index) {
+        filesArray.splice(index, 1);
+        updateFileInput();
+        updatePreview();
+    };
+
+    // Image modal functionality
+    window.openImageModal = function(src) {
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = src;
+        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+        modal.show();
+    };
+});
+</script>
+{% endblock %} 
